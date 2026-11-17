@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { zipSync, strToU8 } from "fflate";
-import { db } from "@/lib/db";
+import { all, get } from "@/lib/db";
 import { authPubkey } from "@/lib/auth";
 import { attestDataset } from "@/lib/nostr";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // grading, payouts and Nostr publishing can take a while
 const toks = (s: string) => new Set(s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").split(/\s+/).filter(Boolean));
 const jaccard = (a: string, b: string) => { const A = toks(a), B = toks(b); const i = [...A].filter((x) => B.has(x)).length; const u = new Set([...A, ...B]).size; return u ? i / u : 1; };
 
@@ -13,12 +13,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { id } = await ctx.params;
   try {
     const pk = await authPubkey(req, "");
-    const d = db();
-    const t = d.prepare("SELECT * FROM tasks WHERE id=?").get(id) as any;
+    const t = await get("SELECT * FROM tasks WHERE id=?", id);
     if (!t || t.requester !== pk) return Response.json({ error: "Not your task" }, { status: 403 });
     // Only real items, only sanity-passing answers. Hidden check items never leave the server.
-    const rows = d.prepare(`SELECT i.id item_id,i.prompt,i.payload,s.id sub_id,s.audio_path,s.duration_ms,s.answer,s.score FROM items i JOIN submissions s ON s.item_id=i.id AND s.verdict='pass'
-      WHERE i.task_id=? AND i.is_check=0 ORDER BY i.position,s.created_at`).all(id) as any[];
+    const rows = await all(`SELECT i.id item_id,i.prompt,i.payload,s.id sub_id,s.audio_path,s.duration_ms,s.answer,s.score FROM items i JOIN submissions s ON s.item_id=i.id AND s.verdict='pass'
+      WHERE i.task_id=? AND i.is_check=0 ORDER BY i.position,s.created_at`, id);
     const byItem = new Map<string, any[]>();
     rows.forEach((r) => byItem.set(r.item_id, [...(byItem.get(r.item_id) || []), r]));
     const out = rows.map((r) => {
@@ -52,15 +51,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       // Voice dataset = zip with dataset.jsonl + audio/*.wav (16 kHz mono PCM)
       const files: Record<string, Uint8Array> = {};
       const vrows = rows.filter((r) => r.audio_path);
-      const meta = vrows.map((r, n) => {
+      const meta: any[] = [];
+      for (const [n, r] of vrows.entries()) {
         const file = `audio/${String(n + 1).padStart(4, "0")}.wav`;
-        files[file] = new Uint8Array(readFileSync(r.audio_path));
+        const a = await get("SELECT data FROM audio WHERE submission_id=?", r.sub_id);
+        if (!a) continue;
+        files[file] = new Uint8Array(a.data);
         const group = byItem.get(r.item_id)!;
-        const rv = d.prepare("SELECT COUNT(*) n, COALESCE(SUM(match),0) ok FROM reviews WHERE submission_id=?").get(r.sub_id) as any;
+        const rv = (await get("SELECT COUNT(*) n, COALESCE(SUM(match),0) ok FROM reviews WHERE submission_id=?", r.sub_id))!;
         // verified = an independent qualified listener typed what they heard and it matched the prompt sentence
         const verification = rv.ok > 0 ? "verified" : rv.n >= 2 ? "disputed" : "unverified";
-        return { audio: file, text: r.prompt, language: t.dst_lang, license: t.license || "Research use only", duration_ms: r.duration_ms, sanity_score: r.score, speakers_for_item: group.length, verification, verified_by: rv.ok, reviewers: rv.n };
-      });
+        meta.push({ audio: file, text: r.prompt, language: t.dst_lang, license: t.license || "Research use only", duration_ms: r.duration_ms, sanity_score: r.score, speakers_for_item: group.length, verification, verified_by: rv.ok, reviewers: rv.n });
+      }
       files["README.txt"] = strToU8(`Sats-for-Data voice dataset\nTask: ${t.title}\nLanguage: ${t.dst_lang}\nLicense set by requester: ${t.license || "Research use only"}\nSpeakers consented to this use when they recorded.\nAudio: 16 kHz mono PCM WAV. See dataset.jsonl for text and verification status.\n`);
       files["dataset.jsonl"] = strToU8(meta.map((m) => JSON.stringify(m)).join("\n"));
       const zip = zipSync(files);

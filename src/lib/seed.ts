@@ -1,4 +1,4 @@
-import type Database from "better-sqlite3";
+import type { Db } from "./db";
 import { createHash, randomUUID } from "node:crypto";
 import { encrypt } from "./crypto";
 
@@ -67,23 +67,24 @@ const SEEDS: Seed[] = [
     rankChecks: [["Abeg help me carry dis load.", "No wahala, I go help you carry am.", "No problem, I will help you carry it.", "A"]] },
 ];
 
-export function seedDemo(d: Database.Database) {
+export async function seedDemo(d: Db & { tx: <T>(fn: (t: Db) => Promise<T>) => Promise<T> }) {
+  // Cold starts on serverless re-run this, so the common case (already seeded) is a single query.
+  if (((await d.get("SELECT COUNT(*) c FROM tasks WHERE requester=?", DEMO_REQUESTER))?.c ?? 0) >= SEEDS.length) return;
   const now = Math.floor(Date.now() / 1000);
-  const insTask = d.prepare(`INSERT INTO tasks (id,requester,title,kind,src_lang,dst_lang,instructions,reward_sats,nwc_enc,created_at,answers_per_item,require_qual,review_sats)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  const insItem = d.prepare("INSERT INTO items (id,task_id,position,prompt,is_check,known_answer,labels,payload) VALUES (?,?,?,?,?,?,?,?)");
-  d.transaction(() => {
-    SEEDS.forEach((s, i) => {
-      if (d.prepare("SELECT 1 FROM tasks WHERE requester=? AND title=?").get(DEMO_REQUESTER, s.title)) return; // idempotent per task
+  const T = "INSERT INTO tasks (id,requester,title,kind,src_lang,dst_lang,instructions,reward_sats,nwc_enc,created_at,answers_per_item,require_qual,review_sats) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  const I = "INSERT INTO items (id,task_id,position,prompt,is_check,known_answer,labels,payload) VALUES (?,?,?,?,?,?,?,?)";
+  for (const [i, s] of SEEDS.entries()) {
+    if (await d.get("SELECT 1 FROM tasks WHERE requester=? AND title=?", DEMO_REQUESTER, s.title)) continue; // idempotent per task
+    await d.tx(async (t) => {
       const id = randomUUID();
-      insTask.run(id, DEMO_REQUESTER, s.title, s.kind, s.src, s.dst, s.instructions, s.reward, encrypt("demo"), now - i * 60, s.perItem,
+      await t.run(T, id, DEMO_REQUESTER, s.title, s.kind, s.src, s.dst, s.instructions, s.reward, encrypt("demo"), now - i * 60, s.perItem,
         s.qual ? 1 : 0, s.kind === "speak" ? Math.max(1, Math.round(s.reward * 0.3)) : null);
       if (s.kind === "rank") {
         const rows = [...(s.rank || []).map(([p, a, b]) => ({ p, a, b, c: 0, k: null as string | null })), ...(s.rankChecks || []).map(([p, a, b, k]) => ({ p, a, b, c: 1, k }))];
         const real = rows.filter((r) => !r.c), chk = rows.filter((r) => r.c), ord: typeof rows = [];
         real.forEach((r, n) => { ord.push(r); if (n % 2 === 1 && chk.length) ord.push(chk.shift()!); });
         ord.push(...chk);
-        ord.forEach((r, n) => insItem.run(randomUUID(), id, n, r.p, r.c, r.k, null, JSON.stringify({ a: r.a, b: r.b })));
+        for (const [n, r] of ord.entries()) await t.run(I, randomUUID(), id, n, r.p, r.c, r.k, null, JSON.stringify({ a: r.a, b: r.b }));
         return;
       }
       const labels = s.labels ? JSON.stringify(s.labels) : null;
@@ -94,7 +95,7 @@ export function seedDemo(d: Database.Database) {
       const ordered: typeof all = [];
       real.forEach((r, n) => { ordered.push(r); if ((n + 1) % step === 0 && chk.length) ordered.push(chk.shift()!); });
       ordered.push(...chk);
-      ordered.forEach((x, n) => insItem.run(randomUUID(), id, n, x.p, x.c, x.a, labels, null));
+      for (const [n, x] of ordered.entries()) await t.run(I, randomUUID(), id, n, x.p, x.c, x.a, labels, null);
     });
-  })();
+  }
 }

@@ -9,7 +9,7 @@ post task (NWC link + cap) → published as a Nostr event → worker signs in wi
 
 ## Run
 ```bash
-cp .env.example .env.local   # set APP_SECRET, GEMINI_API_KEY
+cp .env.example .env.local   # set NEON_POSTGRES, APP_SECRET, GEMINI_API_KEY
 npm install
 npm run dev                  # http://localhost:3000
 ```
@@ -35,7 +35,7 @@ The LLM is a **spam, gibberish and coherence filter**, not a translation authori
 - Per-item payout uniqueness (DB constraint) prevents double pay; per-worker daily cap (`DAILY_CAP_SATS`); 3 attempts per item.
 
 ## Known limits
-The grader can be wrong, and many Nostr keys could still extract small amounts (bounded by the caps). Tasks are published to relays signed by the app key, tagged with the requester. SQLite means a single server or VPS (not serverless).
+The grader can be wrong, and many Nostr keys could still extract small amounts (bounded by the caps). Tasks are published to relays signed by the app key, tagged with the requester. Data lives in Postgres (Neon), including voice recordings, so the app keeps no local state and can run on serverless hosts.
 
 ## Layout
 `src/lib` db, crypto, auth (NIP-98), grader, payout (LNURL-pay + NWC), nostr · `src/app/api` routes · `src/app/*` pages. MIT licensed.

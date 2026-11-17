@@ -6,5 +6,5 @@ export const runtime = "nodejs";
 export async function GET(_: Request, ctx: { params: Promise<{ pubkey: string }> }) {
   const { pubkey } = await ctx.params;
   if (!/^[0-9a-f]{64}$/.test(pubkey)) return Response.json({ error: "Expected a 64-char hex pubkey" }, { status: 400 });
-  return Response.json(reputation(pubkey));
+  return Response.json(await reputation(pubkey));
 }

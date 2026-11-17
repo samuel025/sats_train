@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NWCClient } from "@getalby/sdk/nwc";
-import { db } from "@/lib/db";
+import { all, run, tx } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
 import { withAuth } from "@/lib/auth";
 import { publishEvent, checkTaskEvent } from "@/lib/nostr";
@@ -9,11 +9,11 @@ import { LICENSES } from "@/lib/consent";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const rows = db().prepare(`
+  const rows = await all(`
     SELECT t.id,t.title,t.kind,t.src_lang,t.dst_lang,t.reward_sats,t.created_at,t.nostr_event_id,t.answers_per_item,t.min_level,t.require_qual,t.review_sats,
       (SELECT COUNT(*) FROM items i WHERE i.task_id=t.id AND i.is_check=0) AS item_count,
       (SELECT COUNT(*) FROM payouts p WHERE p.task_id=t.id AND p.status='paid' AND p.item_id NOT LIKE 'rev:%') AS paid_count
-    FROM tasks t WHERE t.status='open' ORDER BY t.created_at DESC`).all();
+    FROM tasks t WHERE t.status='open' ORDER BY t.created_at DESC`);
   return Response.json(rows);
 }
 
@@ -37,25 +37,26 @@ export async function POST(req: Request) {
     const id = String(b.id || "");
     if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error("Missing task id");
     checkTaskEvent(b.event, pk, id); // the REQUESTER signs the public task event
-    const d = db();
     const minLevel = Math.min(Math.max(Math.floor(Number(b.minLevel) || 0), 0), 2);
     // Voice tasks also pay a peer to verify each clip (30% of the item reward).
     const reviewSats = kind === "speak" ? Math.max(1, Math.round(reward * 0.3)) : null;
-    d.prepare(`INSERT INTO tasks (id,requester,title,kind,src_lang,dst_lang,instructions,reward_sats,nwc_enc,created_at,answers_per_item,min_level,require_qual,review_sats,license)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id, pk, b.title.trim(), kind, b.src || "English", b.dst || "Nigerian Pidgin",
-      (b.instructions || "").trim(), reward, encrypt(nwc), Math.floor(Date.now() / 1000), Math.min(Math.max(Number(b.answersPerItem) || 1, 1), 5),
-      minLevel, b.requireQual ? 1 : 0, reviewSats, (LICENSES as readonly string[]).includes(b.license) ? b.license : LICENSES[0]);
-    const ins = d.prepare("INSERT INTO items (id,task_id,position,prompt,is_check,known_answer,labels,payload) VALUES (?,?,?,?,?,?,?,?)");
     // Hidden check items are shuffled in with real ones and look identical to workers.
-    const all = [
+    const all2 = [
       ...items.map((i) => ({ ...i, check: 0, answer: null as string | null })),
       ...checks.map((c) => ({ ...c, check: 1, answer: rank ? c.answer!.trim().toUpperCase() : c.answer!.trim() })),
     ].sort(() => Math.random() - 0.5);
-    all.forEach((i, n) => ins.run(randomUUID(), id, n, i.prompt!.trim(), i.check, i.answer, i.labels ? JSON.stringify(i.labels) : null,
-      rank ? JSON.stringify({ a: i.a!.trim(), b: i.b!.trim() }) : null));
-
+    await tx(async (t) => {
+      await t.run(`INSERT INTO tasks (id,requester,title,kind,src_lang,dst_lang,instructions,reward_sats,nwc_enc,created_at,answers_per_item,min_level,require_qual,review_sats,license)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, id, pk, b.title.trim(), kind, b.src || "English", b.dst || "Nigerian Pidgin",
+        (b.instructions || "").trim(), reward, encrypt(nwc), Math.floor(Date.now() / 1000), Math.min(Math.max(Number(b.answersPerItem) || 1, 1), 5),
+        minLevel, b.requireQual ? 1 : 0, reviewSats, (LICENSES as readonly string[]).includes(b.license) ? b.license : LICENSES[0]);
+      for (const [n, i] of all2.entries()) {
+        await t.run("INSERT INTO items (id,task_id,position,prompt,is_check,known_answer,labels,payload) VALUES (?,?,?,?,?,?,?,?)",
+          randomUUID(), id, n, i.prompt!.trim(), i.check, i.answer, i.labels ? JSON.stringify(i.labels) : null, rank ? JSON.stringify({ a: i.a!.trim(), b: i.b!.trim() }) : null);
+      }
+    });
     const ev = await publishEvent(b.event);
-    d.prepare("UPDATE tasks SET nostr_event_id=? WHERE id=?").run(b.event.id, id);
+    await run("UPDATE tasks SET nostr_event_id=? WHERE id=?", b.event.id, id);
     return { id, nostrEventId: b.event.id, published: !!ev };
   });
 }
