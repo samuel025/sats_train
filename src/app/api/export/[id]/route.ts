@@ -51,7 +51,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     if (t.kind === "speak") {
       // Voice dataset = zip with dataset.jsonl + audio/*.wav (16 kHz mono PCM)
       const files: Record<string, Uint8Array> = {};
-      const vrows = rows.filter((r) => r.audio_path); // recordings withdrawn by their speaker are excluded
+      const vrows = rows.filter((r) => r.audio_path);
       const meta = vrows.map((r, n) => {
         const file = `audio/${String(n + 1).padStart(4, "0")}.wav`;
         files[file] = new Uint8Array(readFileSync(r.audio_path));
@@ -61,7 +61,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         const verification = rv.ok > 0 ? "verified" : rv.n >= 2 ? "disputed" : "unverified";
         return { audio: file, text: r.prompt, language: t.dst_lang, license: t.license || "Research use only", duration_ms: r.duration_ms, sanity_score: r.score, speakers_for_item: group.length, verification, verified_by: rv.ok, reviewers: rv.n };
       });
-      files["README.txt"] = strToU8(`Sats-for-Data voice dataset\nTask: ${t.title}\nLanguage: ${t.dst_lang}\nLicense set by requester: ${t.license || "Research use only"}\nSpeakers consented to this use and may withdraw their recordings; re-download for the latest set.\nAudio: 16 kHz mono PCM WAV. See dataset.jsonl for text and verification status.\n`);
+      files["README.txt"] = strToU8(`Sats-for-Data voice dataset\nTask: ${t.title}\nLanguage: ${t.dst_lang}\nLicense set by requester: ${t.license || "Research use only"}\nSpeakers consented to this use when they recorded.\nAudio: 16 kHz mono PCM WAV. See dataset.jsonl for text and verification status.\n`);
       files["dataset.jsonl"] = strToU8(meta.map((m) => JSON.stringify(m)).join("\n"));
       const zip = zipSync(files);
       const shaZ = createHash("sha256").update(zip).digest("hex");

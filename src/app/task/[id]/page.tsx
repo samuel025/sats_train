@@ -55,7 +55,7 @@ export default function Task({ params }: { params: Promise<{ id: string }> }) {
           <li><b>What we collect:</b> the audio you record, linked to your anonymous Nostr key, not your name.</li>
           <li><b>Who hears it:</b> the requester, and qualified listeners who verify clips for pay.</li>
           <li><b>How it is used:</b> to build language and speech datasets. This task's data license is <b>{task.license || "Research use only"}</b>.</li>
-          <li><b>Your choice:</b> you can delete all your recordings any time from Wallet → Privacy. Payments you already received stay yours.</li>
+          <li><b>Once you submit:</b> an accepted recording is paid for and becomes part of the dataset, so it cannot be taken back. Only record what you are comfortable sharing.</li>
         </ul>
         <button className="btn" onClick={async () => { await authedFetch("/api/consent", { body: { action: "accept" } }); load(); }}>I understand and agree</button>
         <Link className="btn secondary" href="/tasks">No thanks</Link>

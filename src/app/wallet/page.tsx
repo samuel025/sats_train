@@ -14,7 +14,6 @@ export default function Wallet() {
   async function save() { setMsg("Checking address…"); try { const r = await authedFetch("/api/wallet", { body: { address: addr } }); setMsg(r.retried ? `Saved ✓ ${r.retried} held payment(s) will be retried.` : "Saved ✓"); load(); } catch (e: any) { setMsg(e.message); } }
   async function testAddr() { setMsg("Checking address…"); try { const r = await authedFetch("/api/wallet/test", { body: { address: addr } }); setMsg(r.ok ? `This address works ✓ (accepts ${r.min}–${r.max.toLocaleString()} sats)` : r.error); } catch (e: any) { setMsg(e.message); } }
   async function resumeTask(id: string) { setRmsg("Checking wallet link…"); try { const r = await authedFetch(`/api/tasks/${id}/resume`, { body: { nwc: resume[id] || "" } }); setRmsg(`Task resumed ✓${r.balance !== null ? ` Wallet balance: ${r.balance} sats.` : ""}${r.retried ? ` ${r.retried} failed payment(s) are being retried.` : ""}`); load(); } catch (e: any) { setRmsg(e.message); } }
-  async function wipeVoice() { if (!confirm("Delete all your voice recordings? This cannot be undone. Payments you already received stay yours.")) return; try { const r = await authedFetch("/api/consent", { body: { action: "withdraw" } }); setMsg(`Deleted ${r.deleted} recording(s).`); } catch (e: any) { setMsg(e.message); } }
   async function download(id: string, format: string) {
     const r = await authedFetch(`/api/export/${id}?format=${format}&attest=1`, { raw: true }) as Response;
     const ev = r.headers.get("x-nostr-event");
@@ -60,9 +59,6 @@ export default function Wallet() {
             <button className="btn sm" onClick={() => resumeTask(t.id)}>Resume task</button></div>}<h3><Link href={`/task/${t.id}`} style={{ textDecoration: "none" }}>{t.title}</Link></h3><div className="muted small">{t.paid} paid answers · {t.items} items</div>
           <div className="row">{t.kind === "speak" ? <button className="btn secondary" onClick={() => download(t.id, "zip")}>Export ZIP (audio + JSONL)</button> : t.kind === "rank" ? <button className="btn secondary" onClick={() => download(t.id, "jsonl")}>Export preferences (JSONL)</button> : <><button className="btn secondary" onClick={() => download(t.id, "jsonl")}>Export JSONL</button><button className="btn secondary" onClick={() => download(t.id, "csv")}>Export CSV</button></>}</div></div>
       ))}
-      <h2>Privacy</h2>
-      <section className="card"><p className="muted small" style={{ marginTop: 0 }}>Voice recordings are linked only to your anonymous key. You can delete all of yours at any time. Payments you already received are not affected.</p>
-        <button className="btn secondary inline" onClick={wipeVoice}>Delete my voice recordings</button></section>
     </div>
   );
 }
