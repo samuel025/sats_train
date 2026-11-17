@@ -86,7 +86,10 @@ async function init() {
   if (process.env.DB_SCHEMA) await pool().query(`CREATE SCHEMA IF NOT EXISTS "${process.env.DB_SCHEMA}"`);
   await pool().query(SCHEMA);
   // Demo tasks use a placeholder wallet, so they only make sense when payments are simulated.
-  if (process.env.MOCK_PAYMENTS === "1" || process.env.SEED_DEMO === "1") await seedDemo({ ...raw, tx });
+  // Demo tasks need a wallet to pay from: simulated payments, or a funded sandbox link in DEMO_NWC (see `npm run demo:wallet`).
+  const mock = process.env.MOCK_PAYMENTS === "1";
+  if (mock || (process.env.SEED_DEMO === "1" && process.env.DEMO_NWC)) await seedDemo({ ...raw, tx }, mock ? "demo" : process.env.DEMO_NWC!);
+  else if (process.env.SEED_DEMO === "1") console.warn("[seed] SEED_DEMO=1 needs DEMO_NWC (a funded sandbox wallet link) when payments are real; demo tasks not loaded");
 }
 const ready = () => (g._ready ??= init().catch((e) => { g._ready = undefined; throw e; }));
 

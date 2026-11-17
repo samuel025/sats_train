@@ -9,16 +9,16 @@ export default function Landing() {
       {/* HERO: warm radial wash, poster headline */}
       <section className="lp-hero">
         <div className="lp-wrap">
-          <div className="tag rise" style={{ "--d": "0ms" } as React.CSSProperties}>Lightning · Nostr · Local languages</div>
+          <div className="tag rise" style={{ "--d": "0ms" } as React.CSSProperties}>Paid in bitcoin · No bank account · Local languages</div>
           <h1 className="lp-h1 rise" style={{ "--d": "80ms" } as React.CSSProperties}>Teach AI your language. Get paid in sats.</h1>
           <p className="lead rise" style={{ "--d": "180ms" } as React.CSSProperties}>
-            Translate, record your voice, rank AI replies, or verify other speakers in Nigerian Pidgin, Yoruba and Hausa. Approved work is paid over Lightning. No bank account needed.
+            Translate, record your voice, rank AI replies, or verify other speakers in Nigerian Pidgin, Yoruba and Hausa. Approved work is paid in bitcoin sats, straight to your wallet. No bank account needed.
           </p>
           <div className="lp-cta rise" style={{ "--d": "280ms" } as React.CSSProperties}>
             <Link href="/tasks" className="btn inline">Start earning <Arrow /></Link>
             <Link href="/post" className="btn inline secondary">Post a task</Link>
           </div>
-          <div className="lp-trust rise" style={{ "--d": "360ms" } as React.CSSProperties}><span>Instant Lightning payouts</span><span>We never hold your funds</span><span>Open source</span></div>
+          <div className="lp-trust rise" style={{ "--d": "360ms" } as React.CSSProperties}><span>Instant bitcoin payouts</span><span>We never hold your funds</span><span>Open source</span></div>
 
           <div className="rise" style={{ "--d": "460ms" } as React.CSSProperties}><HeroDemo /></div>
         </div>
@@ -68,10 +68,10 @@ export default function Landing() {
           </div>
           <ol className="steps">
             <Reveal as="li" delay={0}><span><b>A requester posts a task</b> and connects a spending-capped Nostr Wallet Connect link. The task is announced on Nostr, signed by the requester.</span></Reveal>
-            <Reveal as="li" delay={90}><span><b>A worker signs in with a Nostr key</b> and answers one item at a time on a simple mobile screen.</span></Reveal>
+            <Reveal as="li" delay={90}><span><b>A worker creates an account in one tap</b> (no email or phone number) and answers one item at a time on a simple mobile screen.</span></Reveal>
             <Reveal as="li" delay={180}><span><b>An AI filter screens out spam</b>: blank, copied, off-language or gibberish answers. It is a filter, not a translation judge.</span></Reveal>
             <Reveal as="li" delay={270}><span><b>Peers cross-check each other.</b> Workers rank AI replies, and qualified listeners verify recordings by typing what they hear.</span></Reveal>
-            <Reveal as="li" delay={360}><span><b>Approved answers are paid</b> after a short anti-abuse hold, straight to the worker's Lightning address.</span></Reveal>
+            <Reveal as="li" delay={360}><span><b>Approved answers are paid</b> after a short anti-abuse hold, straight to the worker's wallet address.</span></Reveal>
             <Reveal as="li" delay={450}><span><b>The requester exports the dataset</b> with a SHA-256 hash pinned on Nostr, so its origin can be proven.</span></Reveal>
           </ol>
         </div>
@@ -85,7 +85,7 @@ export default function Landing() {
           <div className="lp-2">
             <Reveal><div className="card violet">
               <h3>For workers</h3>
-              <p className="muted">All you need is a phone, a Nostr key and a Lightning address.</p>
+              <p className="muted">All you need is a phone and a wallet address to receive your sats.</p>
               <ul className="lp-list"><li>Translate, record, rank replies, or verify clips</li><li>Pass a language test, level up, unlock better-paid work</li><li>Build a reputation that follows your Nostr key</li></ul>
               <Link href="/tasks" className="btn inline">Find a task <Arrow /></Link>
             </div></Reveal>

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "demo:wallet": "node scripts/demo-wallet.mjs"
   },
   "dependencies": {
     "@getalby/sdk": "^9.0.0",

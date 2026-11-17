@@ -52,7 +52,7 @@ export default function Task({ params }: { params: Promise<{ id: string }> }) {
       <section className="card">
         <p>Your recordings are your voice, which is personal data. Please read this before recording.</p>
         <ul className="lp-list">
-          <li><b>What we collect:</b> the audio you record, linked to your anonymous Nostr key, not your name.</li>
+          <li><b>What we collect:</b> the audio you record, linked to your anonymous account key, not your name.</li>
           <li><b>Who hears it:</b> the requester, and qualified listeners who verify clips for pay.</li>
           <li><b>How it is used:</b> to build language and speech datasets. This task's data license is <b>{task.license || "Research use only"}</b>.</li>
           <li><b>Once you submit:</b> an accepted recording is paid for and becomes part of the dataset, so it cannot be taken back. Only record what you are comfortable sharing.</li>
@@ -83,7 +83,7 @@ export default function Task({ params }: { params: Promise<{ id: string }> }) {
         {res.pass && res.payment?.status === "pending" && <div className="pay"><div className="label" style={{ color: "#fff", opacity: .7 }}>Payment queued</div><div className="mono">⚡ {res.sats} sats (<Naira sats={res.sats} className="" />) released in about {res.payment.cooldown}s. Check your Wallet.</div></div>}
         {res.pass && <p className="muted small">{res.peers >= 2 ? `${res.peers} workers have answered this item. Peers cross-check each other.` : "Waiting for another worker to cross-check this item."}</p>}
         {res.pass && res.payment && !["pending", "paid"].includes(res.payment.status) && <p className="err">{res.payment.error || "Payment not sent: " + res.payment.status}</p>}
-        {res.pass && <p className="muted small">No Lightning address yet? <Link href="/wallet">Add one in your Wallet</Link>. Held payments are sent once you do.</p>}
+        {res.pass && <p className="muted small">No wallet address yet? <Link href="/wallet">Add one in your Wallet</Link>. Held payments are sent once you do.</p>}
         {retry && <p className="muted small">{res.attemptsLeft} {res.attemptsLeft === 1 ? "try" : "tries"} left on this item.</p>}
         <button className="btn" onClick={() => { setRes(null); if (retry) setClip(null); else load(); }}>{retry ? "Try again" : "Next item"}</button>
       </section>

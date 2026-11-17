@@ -123,8 +123,9 @@ export default function Post() {
           <div><label>Language check</label>
             <select value={f.requireQual ? "1" : "0"} onChange={(e) => set("requireQual", e.target.value === "1")}><option value="0">No test needed</option><option value="1">Must pass the {f.dst} test</option></select></div>
         </div>
-        <label>Nostr Wallet Connect link</label>
+        <label>Wallet connection link (Nostr Wallet Connect)</label>
         <input value={f.nwc} onChange={(e) => set("nwc", e.target.value)} placeholder="nostr+walletconnect://…" />
+        <p className="hint">Create this link in your bitcoin wallet. It lets us pay workers on your behalf, only up to a limit you choose.</p>
         <p className="hint">Set a <b>spending cap</b> of about <b>{budget} sats</b> on the link ({n} items × {per} sats{speak ? ` + ${reviewCost} sats per clip for a peer to verify it` : ""}). We never hold your money, and the link is stored encrypted. Revoke it when done.</p>
         <p className="hint">{rank ? "With 2+ workers per item, votes are counted and each row is labeled consensus or disputed." : speak ? "Each accepted recording is also verified by a second, qualified listener who types what they hear." : "With 2+ workers per item, independent answers are compared and labeled consensus or disputed."} Your task is announced on Nostr, signed with your key.</p>
         {err && <p className="err">{err}</p>}

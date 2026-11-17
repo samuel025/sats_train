@@ -1,6 +1,6 @@
 import type { Db } from "./db";
 import { createHash, randomUUID } from "node:crypto";
-import { encrypt } from "./crypto";
+import { encrypt, decrypt } from "./crypto";
 
 // A fixed "demo requester" so seeded tasks have an owner. Nobody holds its private key.
 export const DEMO_REQUESTER = createHash("sha256").update("sats-for-data-demo-requester").digest("hex");
@@ -67,7 +67,10 @@ const SEEDS: Seed[] = [
     rankChecks: [["Abeg help me carry dis load.", "No wahala, I go help you carry am.", "No problem, I will help you carry it.", "A"]] },
 ];
 
-export async function seedDemo(d: Db & { tx: <T>(fn: (t: Db) => Promise<T>) => Promise<T> }) {
+export async function seedDemo(d: Db & { tx: <T>(fn: (t: Db) => Promise<T>) => Promise<T> }, wallet: string) {
+  // Point already-seeded tasks at the current demo wallet (e.g. after switching from simulated to sandbox payments).
+  const one = await d.get("SELECT nwc_enc FROM tasks WHERE requester=? LIMIT 1", DEMO_REQUESTER);
+  if (one) { let cur = ""; try { cur = decrypt(one.nwc_enc); } catch { /* secret changed */ } if (cur !== wallet) await d.run("UPDATE tasks SET nwc_enc=? WHERE requester=?", encrypt(wallet), DEMO_REQUESTER); }
   // Cold starts on serverless re-run this, so the common case (already seeded) is a single query.
   if (((await d.get("SELECT COUNT(*) c FROM tasks WHERE requester=?", DEMO_REQUESTER))?.c ?? 0) >= SEEDS.length) return;
   const now = Math.floor(Date.now() / 1000);
@@ -77,7 +80,7 @@ export async function seedDemo(d: Db & { tx: <T>(fn: (t: Db) => Promise<T>) => P
     if (await d.get("SELECT 1 FROM tasks WHERE requester=? AND title=?", DEMO_REQUESTER, s.title)) continue; // idempotent per task
     await d.tx(async (t) => {
       const id = randomUUID();
-      await t.run(T, id, DEMO_REQUESTER, s.title, s.kind, s.src, s.dst, s.instructions, s.reward, encrypt("demo"), now - i * 60, s.perItem,
+      await t.run(T, id, DEMO_REQUESTER, s.title, s.kind, s.src, s.dst, s.instructions, s.reward, encrypt(wallet), now - i * 60, s.perItem,
         s.qual ? 1 : 0, s.kind === "speak" ? Math.max(1, Math.round(s.reward * 0.3)) : null);
       if (s.kind === "rank") {
         const rows = [...(s.rank || []).map(([p, a, b]) => ({ p, a, b, c: 0, k: null as string | null })), ...(s.rankChecks || []).map(([p, a, b, k]) => ({ p, a, b, c: 1, k }))];

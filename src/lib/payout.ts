@@ -2,6 +2,7 @@ import { NWCClient } from "@getalby/sdk/nwc";
 import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { all, get, run, isUniqueViolation } from "./db";
+import { DEMO_REQUESTER } from "./seed";
 import { decrypt } from "./crypto";
 
 // Looks the address up (LNURL-pay) without paying, so a typo is caught when it is saved, not after the work is done.
@@ -69,7 +70,7 @@ export async function releaseDue() {
       if (!w?.a) continue;                                   // stays held until they add an address
       if ((await todayPaid(p.worker)) + p.sats > cap) continue; // stays held until under the daily cap
       if ((await run("UPDATE payouts SET sending=1 WHERE id=? AND sending=0", p.id)) !== 1) continue;
-      const task = (await get("SELECT nwc_enc FROM tasks WHERE id=?", p.task_id))!;
+      const task = (await get("SELECT nwc_enc, requester FROM tasks WHERE id=?", p.task_id))!;
       if (process.env.MOCK_PAYMENTS === "1") { await run("UPDATE payouts SET status='paid', preimage='mock' WHERE id=?", p.id); continue; }
       // Two failure kinds: the worker's address (they can fix it) or the requester's wallet (pauses the task).
       let stage: "address" | "wallet" = "address";
@@ -86,7 +87,8 @@ export async function releaseDue() {
         await run("UPDATE payouts SET status='failed', error=? WHERE id=?", `${stage === "address" ? "address" : "funding"}: ${msg}`, p.id);
         if (stage === "wallet") {
           const n = (await get("SELECT COUNT(*) c FROM payouts WHERE task_id=? AND status='failed' AND error LIKE 'funding:%'", p.task_id))!.c;
-          if (n >= 2) await run("UPDATE tasks SET status='paused', pause_reason=? WHERE id=? AND status='open'", `Payments from your wallet are failing (${msg}). Check the balance and spending limit, then resume.`, p.task_id);
+          // Demo tasks have no owner who could resume them, so they stay open; refill with `npm run demo:wallet`.
+          if (n >= 2 && task.requester !== DEMO_REQUESTER) await run("UPDATE tasks SET status='paused', pause_reason=? WHERE id=? AND status='open'", `Payments from your wallet are failing (${msg}). Check the balance and spending limit, then resume.`, p.task_id);
         }
       }
     }

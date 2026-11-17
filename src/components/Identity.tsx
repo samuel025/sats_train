@@ -12,7 +12,7 @@ function BackupBanner({ onDone }: { onDone: () => void }) {
   };
   return (
     <div className="banner">
-      <div><b>Back up your key.</b> It is your account. If you clear this browser without a backup, your account and unpaid earnings are lost.</div>
+      <div><b>Back up your account key.</b> It is your account. If you clear this browser without a backup, your account and unpaid earnings are lost.</div>
       <div className="banner-actions"><button className="btn sm" onClick={save}>Download key file</button><button className="btn sm secondary" onClick={() => { localStorage.setItem("sfd_backed_up", "1"); onDone(); }}>I saved it</button></div>
     </div>
   );
@@ -36,7 +36,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const footer = id && (
     <footer className="foot">
       Signed in as {id.npub.slice(0, 12)}…{id.npub.slice(-6)} ·{" "}
-      {id.mode === "local" && <a href="#" onClick={(e) => { e.preventDefault(); prompt("Save this private key somewhere safe. Anyone with it can use your account:", backupKey() || ""); }}>Back up key</a>} ·{" "}
+      {id.mode === "local" && <a href="#" onClick={(e) => { e.preventDefault(); prompt("Save this account key somewhere safe. Anyone with it can use your account:", backupKey() || ""); }}>Back up account key</a>} ·{" "}
       <a href="#" onClick={(e) => { e.preventDefault(); signOut(); setId(null); }}>Sign out</a>
     </footer>
   );
@@ -57,13 +57,13 @@ export function Shell({ children }: { children: ReactNode }) {
           {!ready ? <p className="muted">Loading…</p> : !id ? (
             <section className="card float narrow" style={{ marginTop: 24 }}>
               <div className="tag">Sign in</div>
-              <h3 style={{ fontSize: 24, marginBottom: 8 }}>Use your Nostr key</h3>
-              <p className="muted">Your key is your account. No email, bank account or phone number needed.</p>
-              {hasExt && <button className="btn" onClick={async () => setId(await signInExtension())}>Sign in with Nostr extension</button>}
-              <button className={hasExt ? "btn secondary" : "btn"} onClick={async () => setId(await createKey())}>Create a new key for me</button>
-              <details><summary>I already have a key</summary>
-                <input placeholder="nsec1…" value={nsec} onChange={(e) => setNsec(e.target.value)} />
-                <button className="btn secondary" onClick={async () => { try { setId(await importKey(nsec)); } catch (e: any) { setErr(e.message); } }}>Use this key</button>
+              <h3 style={{ fontSize: 24, marginBottom: 8 }}>Sign in to start earning</h3>
+              <p className="muted">Your account is a private key stored on this device. No email, bank account or phone number needed.</p>
+              {hasExt && <button className="btn" onClick={async () => setId(await signInExtension())}>Sign in with my Nostr extension</button>}
+              <button className={hasExt ? "btn secondary" : "btn"} onClick={async () => setId(await createKey())}>Create my account</button>
+              <details><summary>I already have an account key</summary>
+                <input placeholder="Paste your account key (starts with nsec1)" value={nsec} onChange={(e) => setNsec(e.target.value)} />
+                <button className="btn secondary" onClick={async () => { try { setId(await importKey(nsec)); } catch (e: any) { setErr(e.message); } }}>Sign in with this key</button>
                 {err && <p className="err">{err}</p>}
               </details>
             </section>

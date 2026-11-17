@@ -32,19 +32,19 @@ export default function Wallet() {
         <div style={{ fontSize: 14, opacity: .9 }}>{w.today} of {w.cap} sats paid in the last 24 hours (daily limit)</div>
       </section>
       <section className="card">
-        <div className="label">Your reputation · tied to your Nostr key</div>
+        <div className="label">Your reputation · follows your account key</div>
         <div className="row" style={{ marginTop: 12 }}>
           <div className="stat"><b>{w.reputation.score}</b><span>Level: {w.reputation.level}</span></div>
           <div className="stat"><b>{w.reputation.acceptRate}%</b><span>Accepted ({w.reputation.accepted}/{w.reputation.attempts})</span></div>
           {w.reputation.hiddenCheckRate !== null && <div className="stat"><b>{w.reputation.hiddenCheckRate}%</b><span>Quality checks</span></div>}
         </div>
-        <p className="hint" style={{ margin: "12px 0 0" }}>{w.reputation.level === "Trusted" ? "Top level reached." : `Next level: ${w.reputation.level === "New" ? "5 accepted answers or verifications with a score of 30+" : "20 accepted with a score of 70+"}.`} {w.reputation.qualified.length ? <>Qualified: {w.reputation.qualified.join(", ")}. </> : <><Link href="/qualify">Take a language test</Link> to unlock verification work. </>}Public at <code>/api/reputation/{w.pubkey.slice(0, 8)}…</code>. It follows your key, not an account.</p>
+        <p className="hint" style={{ margin: "12px 0 0" }}>{w.reputation.level === "Trusted" ? "Top level reached." : `Next level: ${w.reputation.level === "New" ? "5 accepted answers or verifications with a score of 30+" : "20 accepted with a score of 70+"}.`} {w.reputation.qualified.length ? <>Qualified: {w.reputation.qualified.join(", ")}. </> : <><Link href="/qualify">Take a language test</Link> to unlock verification work. </>}Anyone can look it up at <code>/api/reputation/{w.pubkey.slice(0, 8)}…</code>.</p>
       </section>
       <section className="card">
-      <label>Lightning address (where sats are sent)</label>
+      <label>Wallet address for payouts (a Lightning address)</label>
       <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="you@walletofsatoshi.com" autoCapitalize="none" />
       <div className="row" style={{ gap: 8 }}><button className="btn inline" onClick={save}>Save address</button><button className="btn inline secondary" onClick={testAddr}>Test address</button></div>{msg && <p className="muted small">{msg}</p>}
-      <p className="hint" style={{ marginTop: 8 }}>No Lightning address yet? <Link href="/wallet-help">See how to get one</Link>.</p>
+      <p className="hint" style={{ marginTop: 8 }}>No wallet address yet? <Link href="/wallet-help">See how to get one</Link>.</p>
       </section>
       <h2>Payouts</h2>
       {w.payouts.length === 0 && <p className="muted">Nothing yet. <Link href="/tasks">Find a task</Link></p>}

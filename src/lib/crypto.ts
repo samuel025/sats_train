@@ -1,8 +1,12 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
+// APP_SECRET encrypts stored wallet links. In production a missing or short secret is a hard error, never a silent default.
 function key() {
-  const s = process.env.APP_SECRET || "dev-only-insecure-secret";
-  return createHash("sha256").update(s).digest();
+  const s = process.env.APP_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    if (!s || s.length < 16 || s.startsWith("change-me")) throw new Error("APP_SECRET must be set to a random value of at least 16 characters");
+  }
+  return createHash("sha256").update(s || "dev-only-insecure-secret").digest();
 }
 export function encrypt(plain: string) {
   const iv = randomBytes(12);
