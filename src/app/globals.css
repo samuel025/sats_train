@@ -148,3 +148,59 @@ progress::-webkit-progress-bar{background:rgba(17,17,17,.12)}progress::-webkit-p
 .banner-actions{display:flex;gap:8px}
 .warn{background:var(--pink);border-radius:8px;padding:12px;margin:0 0 12px;font-size:13px}
 .warn input{margin:10px 0 8px;background:#fff}
+
+/* ---------- landing motion (transform + opacity only; all of it off for reduced motion) ---------- */
+:root{--ease:cubic-bezier(.23,1,.32,1)}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes drift{0%{transform:scale(1) translate3d(0,0,0);opacity:.9}100%{transform:scale(1.12) translate3d(-2%,1.5%,0);opacity:1}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes floaty2{0%,100%{transform:translateY(0) rotate(3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.rise{animation:rise .9s var(--ease) both;animation-delay:var(--d,0ms)}
+.lp-hero{position:relative;isolation:isolate;background:none;overflow:hidden}
+.lp-hero:before{content:"";position:absolute;inset:-6%;z-index:-1;background:var(--grad);animation:drift 16s ease-in-out infinite alternate;will-change:transform,opacity}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .8s var(--ease),transform .8s var(--ease);transition-delay:var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}
+.floaty{animation:floaty 6s ease-in-out infinite}
+.toast{opacity:0;transform:translateY(14px) scale(.96) rotate(3deg);transition:opacity .5s var(--ease),transform .6s var(--ease);pointer-events:none}
+.toast.on{opacity:1;transform:translateY(0) scale(1) rotate(3deg);animation:floaty2 6s ease-in-out .7s infinite}
+.pop{opacity:0;transform:scale(.85);transition:opacity .35s var(--ease),transform .45s var(--ease)}
+.pop.on{opacity:1;transform:none}
+.caret{display:inline-block;width:1.5px;height:1.1em;margin-left:1px;vertical-align:-.15em;background:var(--ink);animation:blink 1s steps(1) infinite}
+.lp-input{min-height:42px}
+.lp-w2{transform:rotate(3deg)}
+/* ticker */
+.ticker{overflow:hidden;background:var(--ink);color:#fff;padding:12px 0;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.ticker-track{display:flex;width:max-content;animation:tick 38s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker-set{display:flex;gap:40px;padding-right:40px}
+.ticker-set span{font-size:13px;letter-spacing:-.01em;white-space:nowrap;color:rgba(255,255,255,.82)}
+.ticker-set span:after{content:"✦";margin-left:40px;color:var(--phoenix)}
+/* hover polish */
+.lp .card{transition:transform .35s var(--ease)}
+.lp-3 .card:hover,.lp-2 .card:hover{transform:translateY(-4px)}
+.lp .btn .arrow,.lp .btn span[aria-hidden]{display:inline-block;transition:transform .3s var(--ease)}
+.lp .btn:hover span[aria-hidden]{transform:translateX(4px)}
+.lp .btn{transition:background .25s ease,transform .25s var(--ease)}.lp .btn:active{transform:scale(.97)}
+.steps li:before{transition:transform .3s var(--ease)}.steps li:hover:before{transform:translateX(3px)}
+@media (prefers-reduced-motion:reduce){
+  .rise,.lp-hero:before,.floaty,.toast.on,.caret,.ticker-track{animation:none!important}
+  .reveal,.toast,.pop{opacity:1!important;transform:none!important;transition:none!important}
+  .toast{pointer-events:auto}.lp-w2{transform:rotate(3deg)}
+}
+.lp-w2{width:230px}.lp-w2 .mono{white-space:nowrap}
+@media(max-width:700px){.lp-w2{width:210px}}
+.lp-w2{right:-70px;top:-34px}
+@media(max-width:900px){.lp-w2{right:-12px}}
+@media(max-width:700px){.lp-w2{right:-8px;top:-40px}}
+/* small screens: nav scrolls instead of crushing, payment card stacks under the task card */
+.brand{white-space:nowrap;flex:none}
+nav{min-width:0;overflow-x:auto;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
+nav a{white-space:nowrap}
+@media(max-width:700px){
+  .bar{padding:0 12px;gap:8px}
+  nav a{padding:6px 8px;font-size:12px}
+  .lp-w2{position:relative;right:auto;top:auto;width:78%;margin:-10px 0 0 auto}
+  .lp-widget{padding-bottom:0}
+}
