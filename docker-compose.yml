@@ -1,0 +1,33 @@
+# One command to run the whole app locally:   docker compose up --build   (then open http://localhost:3000)
+# Payments are SIMULATED here (MOCK_PAYMENTS=1), so no wallet or account is needed.
+# Optional: GEMINI_API_KEY=... docker compose up --build   turns on the LLM grader (otherwise a basic offline grader is used).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sats
+      POSTGRES_PASSWORD: sats
+      POSTGRES_DB: sats
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sats -d sats"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  app:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["3000:3000"]
+    environment:
+      DATABASE_URL: postgresql://sats:sats@db:5432/sats
+      APP_SECRET: demo-only-secret-change-me-before-real-use
+      MOCK_PAYMENTS: "1"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GRADER_MODEL: ${GRADER_MODEL:-gemini-2.5-flash}
+      # Relaxed anti-abuse timings so a demo (and `npm run test:e2e`) runs quickly. Defaults are stricter.
+      PAYOUT_COOLDOWN_SECS: "3"
+      MIN_ANSWER_SECS: "1"
+      SUBMIT_PER_MIN: "60"
+volumes:
+  pgdata:

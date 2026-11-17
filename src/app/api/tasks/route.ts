@@ -27,6 +27,13 @@ export async function POST(req: Request) {
     const items: In[] = (b.items || []).filter(okItem);
     const checks: In[] = (b.checks || []).filter((c: In) => okItem(c) && c.answer?.trim() && (!rank || ["A", "B"].includes(c.answer.trim().toUpperCase())));
     if (!b.title?.trim() || items.length < 1 || items.length > 200) throw new Error("Need a title and 1-200 valid items");
+    // Bounded inputs: everything below is stored and shown to other people.
+    const LANGS = ["English", "Nigerian Pidgin", "Yoruba", "Hausa"];
+    if (b.title.length > 120) throw new Error("Title is too long (max 120 characters)");
+    if (String(b.instructions || "").length > 1000) throw new Error("Instructions are too long (max 1000 characters)");
+    if (b.src && !LANGS.includes(b.src)) throw new Error("Unsupported language");
+    if (b.dst && !LANGS.includes(b.dst)) throw new Error("Unsupported language");
+    if ([...items, ...checks].some((i) => (i.prompt || "").length > 500 || (i.a || "").length > 1000 || (i.b || "").length > 1000 || (i.answer || "").length > 500)) throw new Error("An item is too long (prompts max 500 characters, replies max 1000)");
     const reward = Math.floor(Number(b.reward));
     if (!(reward >= 1 && reward <= 10000)) throw new Error("Reward must be 1-10000 sats");
     const nwc = String(b.nwc || "").trim();

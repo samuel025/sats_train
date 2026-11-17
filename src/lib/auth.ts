@@ -26,7 +26,9 @@ export async function withAuth(
   fn: (pubkey: string, body: any) => Promise<unknown>
 ) {
   try {
+    if (Number(req.headers.get("content-length") || 0) > 4_000_000) throw Object.assign(new Error("Request too large"), { status: 413 });
     const raw = req.method === "GET" ? "" : await req.text();
+    if (raw.length > 4_000_000) throw Object.assign(new Error("Request too large"), { status: 413 });
     const pk = await authPubkey(req, raw);
     const out = await fn(pk, raw ? JSON.parse(raw) : {});
     return Response.json(out);

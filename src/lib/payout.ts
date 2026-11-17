@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { all, get, run, isUniqueViolation } from "./db";
 import { DEMO_REQUESTER } from "./seed";
+import { publicJson, invoiceAmountMsat } from "./safe";
 import { decrypt } from "./crypto";
 
 // Looks the address up (LNURL-pay) without paying, so a typo is caught when it is saved, not after the work is done.
@@ -10,12 +11,10 @@ export async function checkAddress(addr: string): Promise<{ ok: boolean; min?: n
   const m = /^([a-z0-9._+-]+)@([a-z0-9.-]+\.[a-z]{2,})$/i.exec(addr.trim());
   if (!m) return { ok: false, error: "That is not a Lightning address. It looks like name@domain.com." };
   try {
-    const res = await fetch(`https://${m[2]}/.well-known/lnurlp/${encodeURIComponent(m[1])}`, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return { ok: false, error: "That address was not found. Check the spelling or try another wallet." };
-    const j = await res.json();
+    const j = await publicJson(`https://${m[2]}/.well-known/lnurlp/${encodeURIComponent(m[1])}`);
     if (!j.callback || j.status === "ERROR") return { ok: false, error: j.reason || "That address cannot receive payments." };
     return { ok: true, min: Math.ceil((j.minSendable || 1000) / 1000), max: Math.floor((j.maxSendable || 1e12) / 1000) };
-  } catch { return { ok: false, error: "We could not reach that wallet. Check the address or your connection." }; }
+  } catch { return { ok: false, error: "We could not reach that wallet, or it is not a public Lightning address. Check the spelling or try another wallet." }; }
 }
 
 export const cooldownSecs = () => Number(process.env.PAYOUT_COOLDOWN_SECS ?? 20);
@@ -23,13 +22,15 @@ export const cooldownSecs = () => Number(process.env.PAYOUT_COOLDOWN_SECS ?? 20)
 export async function invoiceFromAddress(addr: string, sats: number): Promise<string> {
   const [name, host] = addr.split("@");
   if (!name || !host) throw new Error("Invalid Lightning address");
-  const meta = await (await fetch(`https://${host}/.well-known/lnurlp/${encodeURIComponent(name)}`)).json();
+  // The address is typed by a worker, so its server is untrusted: public https only, and the invoice must match the amount we meant to pay.
+  const meta = await publicJson(`https://${host}/.well-known/lnurlp/${encodeURIComponent(name)}`);
   const msats = sats * 1000;
   if (!meta.callback || msats < meta.minSendable || msats > meta.maxSendable) throw new Error("Amount outside the address's limits");
   const u = new URL(meta.callback);
   u.searchParams.set("amount", String(msats));
-  const inv = await (await fetch(u)).json();
-  if (!inv.pr) throw new Error("No invoice returned");
+  const inv = await publicJson(u.toString());
+  if (!inv.pr || typeof inv.pr !== "string") throw new Error("No invoice returned");
+  if (invoiceAmountMsat(inv.pr) !== msats) throw new Error("The wallet returned an invoice for a different amount, so nothing was paid");
   return inv.pr;
 }
 
