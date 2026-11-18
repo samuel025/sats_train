@@ -38,7 +38,7 @@ export default function Landing() {
       {/* STATS */}
       <section className="lp-band">
         <div className="lp-wrap lp-stats">
-          <Reveal className="stat"><b><CountUp to={4} /></b><span>Languages to start: English, Pidgin, Yoruba, Hausa</span></Reveal>
+          <Reveal className="stat"><b><CountUp to={4} /></b><span>Languages to start: English, Pidgin, Yoruba, Hausa. More African languages are built in and switch on with one setting</span></Reveal>
           <Reveal className="stat" delay={120}><b><CountUp to={2} suffix="×" /></b><span>Every item can be answered by independent peers</span></Reveal>
           <Reveal className="stat" delay={240}><b><CountUp to={0} /></b><span>Bank accounts, emails or phone numbers required</span></Reveal>
         </div>
@@ -52,7 +52,7 @@ export default function Landing() {
           <div className="lp-3">
             <Reveal delay={0}><div className="card pink"><h3>Phones, but no bank access</h3><p className="muted">Many young people have a smartphone and spare time but no way to receive international payments.</p></div></Reveal>
             <Reveal delay={110}><div className="card mint"><h3>AI that struggles locally</h3><p className="muted">Mainstream AI has little data in Nigerian Pidgin, Yoruba and Hausa, so it works worse for the people who speak them.</p></div></Reveal>
-            <Reveal delay={220}><div className="card yellow"><h3>No simple bridge</h3><p className="muted">Data platforms need cards and identity checks and pay in dollars. Lightning pays tiny amounts instantly to anyone.</p></div></Reveal>
+            <Reveal delay={220}><div className="card yellow"><h3>No simple bridge</h3><p className="muted">Data platforms need cards and identity checks and pay in dollars. Lightning pays tiny amounts instantly to anyone, and amounts are shown in your local currency.</p></div></Reveal>
           </div>
         </div>
       </section>
@@ -92,7 +92,7 @@ export default function Landing() {
             <Reveal delay={120}><div className="card pink">
               <h3>For requesters</h3>
               <p className="muted">Collect quality-checked language data without deposits or custody.</p>
-              <ul className="lp-list"><li>Pay from your own wallet through a capped NWC link</li><li>Choose the language pair, reward and peers per item</li><li>Export text as JSONL/CSV, or voice as a WAV + JSONL zip, with a provenance hash</li></ul>
+              <ul className="lp-list"><li>Pay from your own wallet through a capped NWC link</li><li>Choose the language or pair, the reward and peers per item</li><li>Export text as JSONL/CSV, or voice as a WAV + JSONL zip, with a provenance hash</li></ul>
               <Link href="/post" className="btn inline secondary" style={{ background: "#fff" }}>Post a task</Link>
             </div></Reveal>
           </div>

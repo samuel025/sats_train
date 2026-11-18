@@ -1,6 +1,6 @@
 # ⚡ Sats-for-Data
 
-**Teach AI your language and get paid in sats.** A mobile-first web app where people earn bitcoin (over Lightning) for small language tasks in Nigerian Pidgin, Yoruba, Hausa and English. Requesters fund tasks from their own spending-capped wallet link, so the app never holds money. The result is a quality-checked dataset. It builds datasets; it does not train a model.
+**Teach AI your language and get paid in sats.** A mobile-first web app where people earn bitcoin (over Lightning) for small language tasks in Nigerian Pidgin, Yoruba, Hausa and English. The code is language-agnostic, with 40+ African languages built in that switch on with one setting (see below). Requesters fund tasks from their own spending-capped wallet link, so the app never holds money. The result is a quality-checked dataset. It builds datasets; it does not train a model.
 
 - **Who it helps and how many:** [docs/IMPACT.md](docs/IMPACT.md)
 - **How it can be attacked and what it does about it:** [THREAT_MODEL.md](THREAT_MODEL.md)
@@ -35,6 +35,14 @@ Set `MOCK_PAYMENTS=0`. Demo tasks are then paid from a **sandbox wallet** (Alby'
 
 ## The worker's wallet
 Workers can connect their own Lightning wallet with a **read-only** Nostr Wallet Connect link and see, inside the app: their live balance (with a naira value), recent transactions, and a **Receive** button that creates a Lightning invoice with a QR code and detects the payment when it arrives. The server refuses any link that can send money, so it can never spend a worker's funds, and a worker can disconnect at any time. **A connected wallet is also the easiest way to get paid:** the worker's wallet creates the invoice (the app checks it is for exactly the reward), so no Lightning address is needed. A Lightning address still works as a fallback. Payouts show a live Held → Sending → Paid tracker with a "+N sats received" toast. Requesters can press **Check funding** on a task to see its wallet balance, spending cap left, and what the task may still pay, with a warning before it runs short.
+
+## Language-agnostic by design
+- **Launch set vs. built-in set:** only English, Nigerian Pidgin, Yoruba and Hausa are on today. To widen it, set `NEXT_PUBLIC_LANGUAGES` at build time to a comma-separated list (e.g. `English,Swahili,Zulu`) or `*` for every registry language plus any typed name. Qualification tests, task validation and demo seeding all follow that setting.
+- **Any language:** a task's language is just a name, so no code change is needed to add one.
+- **Right-to-left aware:** Arabic, N'Ko, Adlam and other RTL text displays correctly in prompts and answer boxes, even for languages not in the list.
+- **Orthography-tolerant checks:** comparison ignores tone marks, special letters (ɛ ɔ ɓ ɗ ƙ ŋ), Arabic vowel marks and spelling variants. The LLM filter is told not to fail dialect, code-switching or non-standard spelling, and to judge only effort and script when it does not know the language.
+- **Qualification tests** are written for Pidgin, Hausa, Yoruba, Igbo, Swahili, Zulu and Amharic (the last four activate when their language is enabled). Add one by adding an entry to `src/lib/qualify.ts` and the name to `TEST_LANGS` in `src/lib/languages.ts` (a unit test keeps them in sync). Have a native speaker review any new test. Tasks in other languages work without a test, using hidden check items and several workers per item.
+- **Local currency:** amounts show in the worker's own currency (NGN, KES, GHS, ZAR, UGX, TZS, ETB, RWF, XOF, XAF, EGP, MAD, ZMW, USD), guessed from the browser locale and changeable in the header. If the rate feed is down for a currency with no stored value, the figure is hidden rather than invented.
 
 ## Task types
 | Type | What the worker does | How quality is checked |

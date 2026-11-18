@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { authedFetch } from "@/lib/client";
-import { Naira } from "@/components/Naira";
+import { Fiat } from "@/components/Fiat";
+import { dirFor } from "@/lib/languages";
 
 export default function Review() {
   const [d, setD] = useState<any>(null);
@@ -51,10 +52,10 @@ export default function Review() {
           <Link className="btn inline" href={d.needQual ? "/qualify" : "/tasks"}>{d.needQual ? "Take a qualification test" : "Browse tasks"}</Link></section>
       ) : (
         <section className="card">
-          <p><span className="pill">{d.clip.language}</span><span className="pill">⚡ {d.clip.sats} sats <Naira sats={d.clip.sats} className="" /></span><span className="pill">~{d.clip.seconds}s</span></p>
+          <p><span className="pill">{d.clip.language}</span><span className="pill">⚡ {d.clip.sats} sats <Fiat sats={d.clip.sats} className="" /></span><span className="pill">~{d.clip.seconds}s</span></p>
           {url ? <audio src={url} controls style={{ width: "100%", margin: "8px 0 14px" }} /> : <p className="muted small">Loading audio…</p>}
           <label>What did the speaker say?</label>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={`Type it in ${d.clip.language}, as you hear it`} />
+          <textarea dir={dirFor(d.clip.language, text)} value={text} onChange={(e) => setText(e.target.value)} placeholder={`Type it in ${d.clip.language}, as you hear it`} />
           <p className="hint">Spelling and tone marks don't need to be perfect. Don't guess: wrong transcripts earn nothing.</p>
           {err && <p className="err">{err}</p>}
           <button className="btn" disabled={busy || text.trim().length < 2} onClick={send}>{busy ? "Checking…" : "Submit transcript"}</button>

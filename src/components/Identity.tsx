@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CurrencyPicker, initCurrency } from "@/components/Fiat";
 import { Identity, getIdentity, createKey, signInExtension, importKey, backupKey, signOut, authedFetch } from "@/lib/client";
 
 function BackupBanner({ onDone }: { onDone: () => void }) {
@@ -43,6 +44,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const [hasExt, setHasExt] = useState(false);
   const [backed, setBacked] = useState(true);
+  useEffect(() => { initCurrency(); }, []);
   useEffect(() => { try { setBacked(localStorage.getItem("sfd_backed_up") === "1"); } catch { /* private mode */ } setHasExt(!!(window as any).nostr); getIdentity().then((i) => { setId(i); setReady(true); }); }, []);
 
   const landing = path === "/";
@@ -62,6 +64,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <nav>
           {links.map(([h, t]) => <Link key={h} href={h} className={path === h ? "on" : ""}>{t}</Link>)}
           {!id && ready && <Link href="/tasks" className="navcta">Sign in</Link>}
+          <CurrencyPicker />
         </nav>
       </header>
       {landing ? (

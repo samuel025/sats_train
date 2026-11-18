@@ -2,7 +2,8 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { authedFetch } from "@/lib/client";
-import { Naira } from "@/components/Naira";
+import { Fiat } from "@/components/Fiat";
+import { dirFor } from "@/lib/languages";
 import { startRecording, blobToBase64, type Rec } from "@/lib/recorder";
 
 export default function Task({ params }: { params: Promise<{ id: string }> }) {
@@ -80,7 +81,7 @@ export default function Task({ params }: { params: Promise<{ id: string }> }) {
         <div className="tag">{res.pass ? "Accepted" : "Not accepted"}</div>
         <h1 style={{ fontSize: 22 }}>{res.pass ? (rank ? "Choice recorded" : "Answer accepted") : retry ? "Try again" : "Not accepted"}</h1>
         <p>{res.reason}</p>
-        {res.pass && res.payment?.status === "pending" && <div className="pay"><div className="label" style={{ color: "#fff", opacity: .7 }}>Payment queued</div><div className="mono">⚡ {res.sats} sats (<Naira sats={res.sats} className="" />) released in about {res.payment.cooldown}s. Check your Wallet.</div></div>}
+        {res.pass && res.payment?.status === "pending" && <div className="pay"><div className="label" style={{ color: "#fff", opacity: .7 }}>Payment queued</div><div className="mono">⚡ {res.sats} sats (<Fiat sats={res.sats} className="" />) released in about {res.payment.cooldown}s. Check your Wallet.</div></div>}
         {res.pass && <p className="muted small">{res.peers >= 2 ? `${res.peers} workers have answered this item. Peers cross-check each other.` : "Waiting for another worker to cross-check this item."}</p>}
         {res.pass && res.payment && !["pending", "paid"].includes(res.payment.status) && <p className="err">{res.payment.error || "Payment not sent: " + res.payment.status}</p>}
         {res.pass && <p className="muted small">No wallet address yet? <Link href="/wallet">Add one in your Wallet</Link>. Held payments are sent once you do.</p>}
@@ -94,13 +95,13 @@ export default function Task({ params }: { params: Promise<{ id: string }> }) {
     <div className="narrow">
       <div className="tag">Task</div>
       <h1>{task.title}</h1>
-      <p><span className="pill">{task.src_lang === task.dst_lang ? task.dst_lang : `${task.src_lang} → ${task.dst_lang}`}</span><span className="pill">⚡ {task.reward_sats} sats per item</span><span className="pill"><Naira sats={task.reward_sats} className="" /></span><span className="pill">{d.done} done</span></p>
+      <p><span className="pill">{task.src_lang === task.dst_lang ? task.dst_lang : `${task.src_lang} → ${task.dst_lang}`}</span><span className="pill">⚡ {task.reward_sats} sats per item</span><span className="pill"><Fiat sats={task.reward_sats} className="" /></span><span className="pill">{d.done} done</span></p>
       {task.instructions && <p className="muted">{task.instructions}</p>}
       {d.isRequester && <p className="muted">This is your task. <Link href="/wallet">Export data from Wallet</Link>.</p>}
       {!item ? <section className="card"><h3>All done here</h3><p className="muted">No more items for you in this task. Thank you!</p><Link className="btn inline" href="/tasks">See other tasks</Link></section> : (
         <section className="card">
           <div className="label">{speak ? `Read this aloud in ${task.dst_lang}` : rank ? "Which reply is better?" : task.kind === "translate" ? `Translate into ${task.dst_lang}` : "Your answer"}</div>
-          <p className="prompt">{item.prompt}</p>
+          <p className="prompt" dir={dirFor(task.kind === "translate" ? task.src_lang : task.dst_lang, item.prompt)}>{item.prompt}</p>
           {rank ? (
             <>
               {item.options.map((o: string, i: number) => (
@@ -118,7 +119,7 @@ export default function Task({ params }: { params: Promise<{ id: string }> }) {
                 : <><span className="muted small" style={{ flex: 1 }}>Find a quiet spot, then tap record. Up to 30 seconds.</span><button className="btn sm rec-btn" onClick={begin} disabled={d.isRequester}>● Record</button></>}
             </div>
           ) : item.labels ? item.labels.map((l: string) => <button key={l} className="btn secondary" onClick={() => setAnswer(l)}>{l}{answer === l ? " ✓" : ""}</button>)
-            : <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Type your answer" disabled={d.isRequester} />}
+            : <textarea dir={dirFor(task.dst_lang, answer)} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Type your answer" disabled={d.isRequester} />}
           {err && <p className="err">{err}</p>}
           <button className="btn" disabled={busy || d.isRequester || !!rec || !ready} onClick={send}>{busy ? "Checking…" : "Submit"}</button>
         </section>

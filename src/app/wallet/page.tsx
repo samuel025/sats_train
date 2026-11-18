@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authedFetch } from "@/lib/client";
-import { Naira } from "@/components/Naira";
+import { Fiat } from "@/components/Fiat";
 import { WalletPanel } from "@/components/WalletPanel";
 
 export default function Wallet() {
@@ -54,7 +54,7 @@ export default function Wallet() {
       <section className="sum">
         <div className="lab">Earned on Sats-for-Data</div>
         <div className="amt">{w.total.toLocaleString()}<small>sats</small></div>
-        <div className="ngn"><Naira sats={w.total} className="" /></div>
+        <div className="ngn"><Fiat sats={w.total} className="" /></div>
         <div className="meter" aria-hidden><i style={{ width: `${Math.min(100, (w.today / w.cap) * 100)}%` }} /></div>
         <div className="cap">{w.today.toLocaleString()} of {w.cap.toLocaleString()} sats paid in the last 24 hours (daily limit)</div>
       </section>
@@ -120,7 +120,7 @@ export default function Wallet() {
             <button className="btn sm secondary" onClick={() => checkFunding(t.id)} disabled={fund[t.id] === "loading"}>{fund[t.id] === "loading" ? "Checking…" : fund[t.id] ? "Check funding again" : "Check funding"}</button>
             {fund[t.id] && fund[t.id] !== "loading" && (fund[t.id].error ? <p className="err" style={{ margin: "8px 0 0" }}>{fund[t.id].error}</p> : (() => { const f = fund[t.id]; return (
               <div className="fund">
-                <div className="fund-row"><span>May still pay</span><b>{f.needed.toLocaleString()} sats <Naira sats={f.needed} /></b></div>
+                <div className="fund-row"><span>May still pay</span><b>{f.needed.toLocaleString()} sats <Fiat sats={f.needed} /></b></div>
                 <div className="muted small" style={{ margin: "-2px 0 6px" }}>{f.heldSats.toLocaleString()} held + {f.remainingSats.toLocaleString()} for answers still to come</div>
                 {f.simulated ? <div className="muted small">Simulated payments: nothing to fund.</div> : <>
                   {f.balance !== null && <div className="fund-row"><span>Wallet balance</span><b>{f.balance.toLocaleString()} sats</b></div>}

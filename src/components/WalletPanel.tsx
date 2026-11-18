@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { authedFetch } from "@/lib/client";
-import { Naira } from "@/components/Naira";
+import { Fiat } from "@/components/Fiat";
 
 type Status = { connected: boolean; sandbox?: boolean; alias?: string | null; lud16?: string | null; canSend?: boolean; canInvoice?: boolean; canList?: boolean };
 type Live = { balance: number; transactions: { type: string; state: string; sats: number; description: string; at: number }[] };
@@ -81,7 +81,7 @@ export function WalletPanel({ savedAddress, onUseAddress, onChange }: { savedAdd
       <div className="wp-head">
         <div><div className="label">Your Lightning wallet{st.alias ? ` · ${st.alias}` : ""}</div>
           <div className="wp-bal">⚡ {live ? live.balance.toLocaleString() : "…"} <span>sats</span></div>
-          {live && <Naira sats={live.balance} />}</div>
+          {live && <Fiat sats={live.balance} />}</div>
         <div className="wp-actions">
           <button className="btn sm secondary" onClick={() => void refresh()} disabled={loading}>{loading ? "Updating…" : "Refresh"}</button>
           {st.canInvoice && <button className="btn sm" onClick={() => { setOpen(!open); setInv(null); setGot(null); }}>Receive</button>}

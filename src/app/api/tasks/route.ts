@@ -5,6 +5,8 @@ import { encrypt } from "@/lib/crypto";
 import { withAuth } from "@/lib/auth";
 import { publishEvent, checkTaskEvent } from "@/lib/nostr";
 import { LICENSES } from "@/lib/consent";
+import { allowedLang, enabledLanguages, hasTest } from "@/lib/languages";
+import { taskLang } from "@/lib/reputation";
 
 export const runtime = "nodejs";
 
@@ -28,11 +30,12 @@ export async function POST(req: Request) {
     const checks: In[] = (b.checks || []).filter((c: In) => okItem(c) && c.answer?.trim() && (!rank || ["A", "B"].includes(c.answer.trim().toUpperCase())));
     if (!b.title?.trim() || items.length < 1 || items.length > 200) throw new Error("Need a title and 1-200 valid items");
     // Bounded inputs: everything below is stored and shown to other people.
-    const LANGS = ["English", "Nigerian Pidgin", "Yoruba", "Hausa"];
     if (b.title.length > 120) throw new Error("Title is too long (max 120 characters)");
     if (String(b.instructions || "").length > 1000) throw new Error("Instructions are too long (max 1000 characters)");
-    if (b.src && !LANGS.includes(b.src)) throw new Error("Unsupported language");
-    if (b.dst && !LANGS.includes(b.dst)) throw new Error("Unsupported language");
+    // Any language is allowed (it is just a name), but it must look like one.
+    const src = allowedLang(b.src ?? "English"), dst = allowedLang(b.dst ?? "English");
+    if (!src || !dst) throw new Error("Unsupported language. Available now: " + enabledLanguages().map((l) => l.name).join(", "));
+    if (b.requireQual && !hasTest(taskLang({ kind, src_lang: src, dst_lang: dst }))) throw new Error(`There is no qualification test for ${taskLang({ kind, src_lang: src, dst_lang: dst })} yet. Publish without the language check.`);
     if ([...items, ...checks].some((i) => (i.prompt || "").length > 500 || (i.a || "").length > 1000 || (i.b || "").length > 1000 || (i.answer || "").length > 500)) throw new Error("An item is too long (prompts max 500 characters, replies max 1000)");
     const reward = Math.floor(Number(b.reward));
     if (!(reward >= 1 && reward <= 10000)) throw new Error("Reward must be 1-10000 sats");
@@ -54,7 +57,7 @@ export async function POST(req: Request) {
     ].sort(() => Math.random() - 0.5);
     await tx(async (t) => {
       await t.run(`INSERT INTO tasks (id,requester,title,kind,src_lang,dst_lang,instructions,reward_sats,nwc_enc,created_at,answers_per_item,min_level,require_qual,review_sats,license)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, id, pk, b.title.trim(), kind, b.src || "English", b.dst || "Nigerian Pidgin",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, id, pk, b.title.trim(), kind, src, dst,
         (b.instructions || "").trim(), reward, encrypt(nwc), Math.floor(Date.now() / 1000), Math.min(Math.max(Number(b.answersPerItem) || 1, 1), 5),
         minLevel, b.requireQual ? 1 : 0, reviewSats, (LICENSES as readonly string[]).includes(b.license) ? b.license : LICENSES[0]);
       for (const [n, i] of all2.entries()) {

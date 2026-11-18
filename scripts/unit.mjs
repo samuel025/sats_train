@@ -3,6 +3,7 @@ import { isPrivateIp, publicJson, invoiceAmountMsat, canSpend, spendingMethods }
 import { fold, similarity } from "../src/lib/text.ts";
 import { encrypt, decrypt } from "../src/lib/crypto.ts";
 import { BANK, PASS_MARK } from "../src/lib/qualify.ts";
+import { isEnabled, allowedLang, LANGUAGES, TEST_LANGS, cleanLang, dirFor, hasTest, guessCurrency, curByCode, CURRENCIES } from "../src/lib/languages.ts";
 
 let fails = 0;
 const ok = (name, cond, detail = "") => { if (!cond) fails++; console.log(`${cond ? "  ✓" : "  ✗"} ${name}${cond ? "" : "  " + detail}`); };
@@ -55,6 +56,25 @@ ok("production refuses the placeholder secret", !!(await rejects((async () => en
 
 console.log("qualify.ts: question bank");
 for (const [lang, qs] of Object.entries(BANK)) ok(`${lang}: ${qs.length} questions, valid answers, passable`, qs.length >= PASS_MARK && qs.every((q) => q.options.length >= 3 && q.answer >= 0 && q.answer < q.options.length));
+
+console.log("languages.ts: any language, text direction, currencies");
+ok("test list matches the qualification bank", [...TEST_LANGS].sort().join() === Object.keys(BANK).sort().join(), `${TEST_LANGS} vs ${Object.keys(BANK)}`);
+ok("language names and codes are unique", new Set(LANGUAGES.map((l) => l.name)).size === LANGUAGES.length && new Set(LANGUAGES.map((l) => l.code)).size === LANGUAGES.length);
+ok("canonicalises a known name", cleanLang("  swahili ") === "Swahili" && cleanLang("isiZulu") === "Zulu" && cleanLang("yo") === "Yoruba");
+ok("accepts a language not in the list", cleanLang("Tumbuka") === "Tumbuka" && cleanLang("Ndebele (Zimbabwe)") === "Ndebele (Zimbabwe)");
+for (const bad of ["", "x", "<script>", "a".repeat(41), "Hausa; DROP TABLE tasks", "123"]) ok(`rejects ${JSON.stringify(bad.slice(0, 20))}`, cleanLang(bad) === null);
+ok("Arabic and unknown RTL scripts display right-to-left", dirFor("Arabic") === "rtl" && dirFor("Unknown", "ߒߞߏ") === "rtl" && dirFor("Hausa") === "ltr");
+ok("only English and tested languages can gate a task", hasTest("English") && hasTest("Swahili") && !hasTest("Tumbuka"));
+ok("every currency code is unique", new Set(CURRENCIES.map((c) => c.code)).size === CURRENCIES.length);
+ok("guesses currency from the browser locale", guessCurrency("sw-KE") === "KES" && guessCurrency("en-NG") === "NGN" && guessCurrency("fr-SN") === "XOF" && guessCurrency("en") === "USD" && !!curByCode("GHS"));
+
+ok("launch set is Nigerian only", ["English", "Nigerian Pidgin", "Yoruba", "Hausa"].every(isEnabled) && !isEnabled("Swahili") && !isEnabled("Tumbuka"));
+ok("tasks may only use enabled languages", allowedLang("yoruba") === "Yoruba" && allowedLang("Swahili") === null && allowedLang("Tumbuka") === null);
+
+console.log("text.ts: other African orthographies");
+ok("folds Twi/Ewe/Hausa special letters", similarity("Akwaaba, ɛte sɛn?", "akwaaba ete sen") === 1 && fold("ƙasa ɗaya ɓoye") === "kasa daya boye", fold("ƙasa ɗaya ɓoye"));
+ok("folds Arabic vowel marks and alef forms", fold("أَهْلاً") === fold("اهلا"), fold("أَهْلاً"));
+ok("Ethiopic script is left intact", fold("አመሰግናለሁ") === "አመሰግናለሁ");
 
 console.log(fails ? `\n${fails} unit test(s) FAILED` : "\nAll unit tests passed");
 process.exit(fails ? 1 : 0);

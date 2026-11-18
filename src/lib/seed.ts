@@ -1,6 +1,7 @@
 import type { Db } from "./db";
 import { createHash, randomUUID } from "node:crypto";
 import { encrypt, decrypt } from "./crypto";
+import { isEnabled } from "./languages";
 
 // A fixed "demo requester" so seeded tasks have an owner. Nobody holds its private key.
 export const DEMO_REQUESTER = createHash("sha256").update("sats-for-data-demo-requester").digest("hex");
@@ -24,6 +25,28 @@ const SEEDS: Seed[] = [
     items: ["How much is this?", "That is too expensive.", "I would like two oranges.", "Can you reduce the price?", "Where can I find fresh vegetables?",
       "I will come back later.", "Please give me my change.", "The weather is hot today."],
     checks: [["Thank you", "Na gode"], ["Water", "Ruwa"]] },
+  { title: "Everyday phrases to Swahili", kind: "translate", src: "English", dst: "Swahili", reward: 300, perItem: 2,
+    instructions: "Translate into natural, everyday Swahili. Coastal or inland usage are both fine.",
+    items: ["Good morning, how are you?", "How much is this?", "I am going home now.", "Please come in and sit down.", "The bus is late today.",
+      "My brother works in Nairobi.", "We are very happy to see you.", "Can you help me, please?"],
+    checks: [["Thank you", "Asante"], ["Water", "Maji"]] },
+  { title: "Greetings and family to Igbo", kind: "translate", src: "English", dst: "Igbo", reward: 300, perItem: 2,
+    instructions: "Translate into Igbo. Tone marks and dot-below letters are welcome but not required.",
+    items: ["Good evening, how was your day?", "My father is at the market.", "Please give me some water.", "The food is ready.", "I will see you tomorrow.",
+      "The children are at school.", "How is your family?", "Come and sit with us."],
+    checks: [["Water", "Mmiri"], ["Thank you", "Imela"]] },
+  { title: "Daily life to Zulu", kind: "translate", src: "English", dst: "Zulu", reward: 300, perItem: 2,
+    instructions: "Translate into isiZulu in the way you would say it to a friend or neighbour.",
+    items: ["How are you today?", "I am going to the shop.", "Please help me with this bag.", "The water is cold.", "We will eat at home.",
+      "My grandmother lives in the village.", "What is your name?", "See you tomorrow."],
+    checks: [["Thank you", "Ngiyabonga"], ["Water", "Amanzi"]] },
+  { title: "Basic phrases to Amharic", kind: "translate", src: "English", dst: "Amharic", reward: 300, perItem: 2,
+    instructions: "Translate into Amharic using Ethiopic (Ge'ez) script.",
+    items: ["Good morning.", "How much is this?", "I am going home.", "Please sit down.", "The coffee is hot.", "Where is the market?", "I do not understand.", "Welcome to our house."],
+    checks: [["Thank you", "አመሰግናለሁ"], ["Water", "ውሃ"]] },
+  { title: "Read Swahili sentences aloud", kind: "speak", src: "Swahili", dst: "Swahili", reward: 400, perItem: 2,
+    instructions: "Record yourself reading each sentence clearly in a quiet place. Natural speed, no need to be perfect.",
+    items: ["Habari za asubuhi, hujambo?", "Ninakwenda sokoni leo.", "Tafadhali nisaidie kubeba mfuko huu.", "Chakula hiki ni kitamu sana.", "Nyumba yetu iko karibu na mto."], checks: [] },
   { title: "Nigerian Pidgin to English", kind: "translate", src: "Nigerian Pidgin", dst: "English", reward: 150, perItem: 2,
     instructions: "Write clear, natural English with the same meaning.",
     items: ["Wetin you dey do for there?", "Abeg, make you wait small.", "I no sabi where e dey.", "Dis rice sweet well well.", "E don tey wey I see you.",
@@ -67,16 +90,19 @@ const SEEDS: Seed[] = [
     rankChecks: [["Abeg help me carry dis load.", "No wahala, I go help you carry am.", "No problem, I will help you carry it.", "A"]] },
 ];
 
+// Only seed tasks in languages that are switched on.
+const LIVE = SEEDS.filter((s) => isEnabled(s.src) && isEnabled(s.dst));
+
 export async function seedDemo(d: Db & { tx: <T>(fn: (t: Db) => Promise<T>) => Promise<T> }, wallet: string) {
   // Point already-seeded tasks at the current demo wallet (e.g. after switching from simulated to sandbox payments).
   const one = await d.get("SELECT nwc_enc FROM tasks WHERE requester=? LIMIT 1", DEMO_REQUESTER);
   if (one) { let cur = ""; try { cur = decrypt(one.nwc_enc); } catch { /* secret changed */ } if (cur !== wallet) await d.run("UPDATE tasks SET nwc_enc=? WHERE requester=?", encrypt(wallet), DEMO_REQUESTER); }
   // Cold starts on serverless re-run this, so the common case (already seeded) is a single query.
-  if (((await d.get("SELECT COUNT(*) c FROM tasks WHERE requester=?", DEMO_REQUESTER))?.c ?? 0) >= SEEDS.length) return;
+  if (((await d.get("SELECT COUNT(*) c FROM tasks WHERE requester=?", DEMO_REQUESTER))?.c ?? 0) >= LIVE.length) return;
   const now = Math.floor(Date.now() / 1000);
   const T = "INSERT INTO tasks (id,requester,title,kind,src_lang,dst_lang,instructions,reward_sats,nwc_enc,created_at,answers_per_item,require_qual,review_sats) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
   const I = "INSERT INTO items (id,task_id,position,prompt,is_check,known_answer,labels,payload) VALUES (?,?,?,?,?,?,?,?)";
-  for (const [i, s] of SEEDS.entries()) {
+  for (const [i, s] of LIVE.entries()) {
     if (await d.get("SELECT 1 FROM tasks WHERE requester=? AND title=?", DEMO_REQUESTER, s.title)) continue; // idempotent per task
     await d.tx(async (t) => {
       const id = randomUUID();

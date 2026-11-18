@@ -1,7 +1,6 @@
 import { all, get } from "./db";
 
 export const LEVELS = ["New", "Regular", "Trusted"] as const;
-export const QUAL_LANGS = ["Nigerian Pidgin", "Yoruba", "Hausa"] as const;
 
 // Reputation is derived from activity keyed by Nostr pubkey, so it follows the person, not an email.
 // Verification reviews count toward it too.

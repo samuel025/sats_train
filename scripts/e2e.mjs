@@ -45,8 +45,8 @@ ok("demo tasks are seeded", Array.isArray(tasks) && tasks.length >= 5, `got ${ta
 ok("all task types are present", ["translate", "speak", "rank", "classify"].every((k) => tasks.some((t) => t.kind === k)));
 const home = await fetch(B + "/");
 ok("security headers are set", !!home.headers.get("content-security-policy") && home.headers.get("x-content-type-options") === "nosniff" && home.headers.get("x-frame-options") === "DENY");
-const rate = await (await fetch(B + "/api/rate")).json();
-ok("naira rate is available", rate.ngnPerBtc > 0, JSON.stringify(rate));
+const rate = await (await fetch(B + "/api/rate?cur=NGN")).json();
+ok("naira rate is available", rate.perBtc > 0, JSON.stringify(rate));
 
 console.log("Authentication");
 ok("no credentials are refused", (await fetch(B + "/api/wallet")).status >= 400);

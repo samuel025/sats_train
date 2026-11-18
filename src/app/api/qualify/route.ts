@@ -1,6 +1,7 @@
 import { all, get, run } from "@/lib/db";
 import { withAuth } from "@/lib/auth";
 import { BANK, PASS_MARK } from "@/lib/qualify";
+import { isEnabled } from "@/lib/languages";
 
 export const runtime = "nodejs";
 const MAX_PER_DAY = 3;
@@ -8,7 +9,7 @@ const MAX_PER_DAY = 3;
 async function status(pk: string) {
   const rows = await all("SELECT * FROM quals WHERE pubkey=?", pk);
   const now = Math.floor(Date.now() / 1000);
-  return Object.keys(BANK).map((language) => {
+  return Object.keys(BANK).filter(isEnabled).map((language) => {
     const r = rows.find((x) => x.language === language);
     const used = r && now - r.window_start < 86400 ? r.attempts_today : 0;
     return { language, passed: !!r?.passed, bestScore: r?.best_score ?? null, attemptsLeft: MAX_PER_DAY - used, total: BANK[language].length, passMark: PASS_MARK };
@@ -20,14 +21,14 @@ export async function GET(req: Request) {
   return withAuth(req, async (pk) => {
     const lang = new URL(req.url).searchParams.get("lang");
     if (!lang) return { languages: await status(pk) };
-    if (!BANK[lang]) throw new Error("Unknown language");
+    if (!BANK[lang] || !isEnabled(lang)) throw new Error("Unknown language");
     return { questions: BANK[lang].map((q) => ({ q: q.q, options: q.options })), ...(await status(pk)).find((s) => s.language === lang)! };
   });
 }
 
 export async function POST(req: Request) {
   return withAuth(req, async (pk, b) => {
-    const lang = String(b.language || ""); const bank = BANK[lang];
+    const lang = String(b.language || ""); const bank = isEnabled(lang) ? BANK[lang] : undefined;
     if (!bank) throw new Error("Unknown language");
     const st = (await status(pk)).find((s) => s.language === lang)!;
     if (st.passed) return { passed: true, score: st.bestScore, already: true };

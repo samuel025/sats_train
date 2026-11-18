@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authedFetch, signNostrEvent } from "@/lib/client";
+import { LangPick } from "@/components/LangPick";
+import { cleanLang, hasTest, dirFor } from "@/lib/languages";
 
-const LANGS = ["English", "Nigerian Pidgin", "Yoruba", "Hausa"];
 const KINDS: [string, string][] = [
   ["translate", "Translation (worker types an answer)"],
   ["speak", "Voice recording (worker reads sentences aloud)"],
@@ -21,7 +22,9 @@ export default function Post() {
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const set = (k: string, v: any) => setF((o) => ({ ...o, [k]: v }));
   const speak = f.kind === "speak", rank = f.kind === "rank";
+  const lang = cleanLang(f.dst), testable = f.kind === "translate" && f.dst === "English" ? hasTest(f.src) : !!lang && hasTest(f.dst);
 
+  const srcLang = speak || rank ? f.dst : f.src;
   const upd = (list: Row[], setList: (r: Row[]) => void, i: number, k: keyof Row, v: string) => setList(list.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   const del = (list: Row[], setList: (r: Row[]) => void, i: number, min = 0) => list.length > min && setList(list.filter((_, j) => j !== i));
   const filled = (x: Row) => x.prompt.trim() && (!rank || (x.a.trim() && x.b.trim()));
@@ -43,7 +46,7 @@ export default function Post() {
         tags: [["d", `sats-for-data:${taskId}`], ["t", "sats-for-data"], ["lang", f.src, f.dst], ["reward", String(f.reward)], ["items", String(good.length)]],
       });
       const strip = (x: Row) => (rank ? { prompt: x.prompt, a: x.a, b: x.b } : { prompt: x.prompt });
-      const res = await authedFetch("/api/tasks", { body: { ...f, src: speak || rank ? f.dst : f.src, id: taskId, event,
+      const res = await authedFetch("/api/tasks", { body: { ...f, requireQual: f.requireQual && testable, src: speak || rank ? f.dst : f.src, id: taskId, event,
         items: good.map(strip), checks: speak ? [] : goodChecks.map((c) => ({ ...strip(c), answer: c.answer })) } });
       r.push(`/task/${res.id}`);
     } catch (e: any) { setErr(e.message); setBusy(false); }
@@ -57,15 +60,15 @@ export default function Post() {
     <div key={i} className="irow">
       <div className="irow-head"><span className="label">{gold ? "Check" : "Item"} {i + 1}</span>
         <button type="button" className="x" aria-label="Remove" onClick={() => del(list, setList, i, gold ? 0 : 1)}>×</button></div>
-      <input value={x.prompt} onChange={(e) => upd(list, setList, i, "prompt", e.target.value)}
+      <input dir={dirFor(srcLang, x.prompt)} value={x.prompt} onChange={(e) => upd(list, setList, i, "prompt", e.target.value)}
         placeholder={rank ? "The user's message, e.g. “How far? You don chop?”" : speak ? "Sentence to read aloud" : `Sentence in ${f.src}`} />
       {rank && <div className="row">
-        <div><input value={x.a} onChange={(e) => upd(list, setList, i, "a", e.target.value)} placeholder="Reply A" /></div>
-        <div><input value={x.b} onChange={(e) => upd(list, setList, i, "b", e.target.value)} placeholder="Reply B" /></div>
+        <div><input dir={dirFor(f.dst, x.a)} value={x.a} onChange={(e) => upd(list, setList, i, "a", e.target.value)} placeholder="Reply A" /></div>
+        <div><input dir={dirFor(f.dst, x.b)} value={x.b} onChange={(e) => upd(list, setList, i, "b", e.target.value)} placeholder="Reply B" /></div>
       </div>}
       {gold && (rank
         ? <select value={x.answer} onChange={(e) => upd(list, setList, i, "answer", e.target.value)}><option value="">Which reply is clearly better?</option><option value="A">Reply A is better</option><option value="B">Reply B is better</option></select>
-        : <input value={x.answer} onChange={(e) => upd(list, setList, i, "answer", e.target.value)} placeholder={`Known good answer in ${f.dst}`} />)}
+        : <input dir={dirFor(f.dst, x.answer)} value={x.answer} onChange={(e) => upd(list, setList, i, "answer", e.target.value)} placeholder={`Known good answer in ${f.dst}`} />)}
     </div>
   ));
 
@@ -79,10 +82,10 @@ export default function Post() {
         <h3>Basics</h3>
         <label>Task type</label>
         <select value={f.kind} onChange={(e) => set("kind", e.target.value)}>{KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-        <label>Title</label><input value={f.title} onChange={(e) => set("title", e.target.value)} placeholder={rank ? "Which Pidgin reply is better?" : "Translate greetings to Pidgin"} />
+        <label>Title</label><input value={f.title} onChange={(e) => set("title", e.target.value)} placeholder={rank ? `Which ${f.dst || "local-language"} reply is better?` : `Translate greetings to ${f.dst || "your language"}`} />
         <div className="row">
-          {f.kind === "translate" && <div><label>From</label><select value={f.src} onChange={(e) => set("src", e.target.value)}>{LANGS.map((l) => <option key={l}>{l}</option>)}</select></div>}
-          <div><label>{f.kind === "translate" ? "To" : "Language"}</label><select value={f.dst} onChange={(e) => set("dst", e.target.value)}>{LANGS.map((l) => <option key={l}>{l}</option>)}</select></div>
+          {f.kind === "translate" && <div><label>From</label><LangPick value={f.src} onChange={(v) => set("src", v)} /></div>}
+          <div><label>{f.kind === "translate" ? "To" : "Language"}</label><LangPick value={f.dst} onChange={(v) => set("dst", v)} /></div>
         </div>
         <label>Instructions for workers (optional)</label>
         <textarea value={f.instructions} onChange={(e) => set("instructions", e.target.value)} placeholder={rank ? "Pick the reply that is more natural, correct and helpful." : "Anything workers should know"} />
@@ -121,7 +124,8 @@ export default function Post() {
           <div><label>Who can work on it</label>
             <select value={f.minLevel} onChange={(e) => set("minLevel", Number(e.target.value))}><option value={0}>Anyone</option><option value={1}>Regular level and above</option><option value={2}>Trusted level only</option></select></div>
           <div><label>Language check</label>
-            <select value={f.requireQual ? "1" : "0"} onChange={(e) => set("requireQual", e.target.value === "1")}><option value="0">No test needed</option><option value="1">Must pass the {f.dst} test</option></select></div>
+            <select value={f.requireQual ? "1" : "0"} onChange={(e) => set("requireQual", e.target.value === "1")}><option value="0">No test needed</option><option value="1" disabled={!testable}>{testable ? `Must pass the ${f.dst} test` : `No ${f.dst || "language"} test yet`}</option></select>
+            {!testable && <p className="hint" style={{ margin: "-8px 0 8px" }}>Tests exist for the languages offered here. If one has none, use quality checks and more workers per item.</p>}</div>
         </div>
         <label>Wallet connection link (Nostr Wallet Connect)</label>
         <input value={f.nwc} onChange={(e) => set("nwc", e.target.value)} placeholder="nostr+walletconnect://…" />
@@ -129,7 +133,7 @@ export default function Post() {
         <p className="hint">Set a <b>spending cap</b> of about <b>{budget} sats</b> on the link ({n} items × {per} sats{speak ? ` + ${reviewCost} sats per clip for a peer to verify it` : ""}). We never hold your money, and the link is stored encrypted. Revoke it when done.</p>
         <p className="hint">{rank ? "With 2+ workers per item, votes are counted and each row is labeled consensus or disputed." : speak ? "Each accepted recording is also verified by a second, qualified listener who types what they hear." : "With 2+ workers per item, independent answers are compared and labeled consensus or disputed."} Your task is announced on Nostr, signed with your key.</p>
         {err && <p className="err">{err}</p>}
-        <button className="btn" disabled={busy || !f.title.trim() || !n || !f.nwc.trim()} onClick={submit}>{busy ? "Publishing…" : `Publish task (${n} ${n === 1 ? "item" : "items"})`}</button>
+        <button className="btn" disabled={busy || !f.title.trim() || !n || !f.nwc.trim() || !lang || !cleanLang(srcLang)} onClick={submit}>{busy ? "Publishing…" : `Publish task (${n} ${n === 1 ? "item" : "items"})`}</button>
       </section>
     </div>
   );

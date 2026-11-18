@@ -10,9 +10,9 @@ export default function WalletHelp() {
       <section className="card"><h3>Pick a wallet</h3>
         <p className="muted small">Choose any wallet that gives you a Lightning address. Availability, fees and rules differ by country and change over time, so check each wallet's current terms before relying on it.</p>
         <ul className="lp-list">
-          <li><b>Basic phone, no data:</b> Machankura lets people use Bitcoin from a feature phone through a USSD code, and lists Nigeria among its markets. It is custodial and charges a small fee, so confirm the current terms on 8333.mobi.</li>
+          <li><b>Basic phone, no data:</b> Machankura lets people use Bitcoin from a feature phone through a USSD code, and is available in several African countries. It is custodial and charges a small fee, so confirm the current terms on 8333.mobi.</li>
           <li><b>Smartphone:</b> Blink is a free app aimed at everyday Bitcoin payments and offers Lightning addresses. Confirm availability in your area inside the app.</li>
-          <li><b>Cashing out to naira:</b> some services, such as Bitnob, can convert Bitcoin to local bank deposits. Check their current fees and Nigerian availability.</li>
+          <li><b>Cashing out to local money:</b> some services, such as Bitnob, can convert Bitcoin to bank or mobile-money deposits. Check their current fees and whether they serve your country.</li>
         </ul></section>
 
       <section className="card"><h3>Set it up</h3>
