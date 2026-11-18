@@ -44,6 +44,9 @@ Workers can connect their own Lightning wallet with a **read-only** Nostr Wallet
 - **Qualification tests** are written for Pidgin, Hausa, Yoruba, Igbo, Swahili, Zulu and Amharic (the last four activate when their language is enabled). Add one by adding an entry to `src/lib/qualify.ts` and the name to `TEST_LANGS` in `src/lib/languages.ts` (a unit test keeps them in sync). Have a native speaker review any new test. Tasks in other languages work without a test, using hidden check items and several workers per item.
 - **Local currency:** amounts show in the worker's own currency (NGN, KES, GHS, ZAR, UGX, TZS, ETB, RWF, XOF, XAF, EGP, MAD, ZMW, USD), guessed from the browser locale and changeable in the header. If the rate feed is down for a currency with no stored value, the figure is hidden rather than invented.
 
+## Training-ready data
+Exports are built to be trained on by someone else. [`scripts/dataset/prepare.py`](scripts/dataset/README.md) turns a text export into a train/test split (by source sentence, so nothing leaks) with a dataset card covering counts, licence, how it was made and its limits. Voice exports are already audio plus transcript. Training itself is the requester's next step.
+
 ## Task types
 | Type | What the worker does | How quality is checked |
 |---|---|---|

@@ -7,3 +7,5 @@ audio_data
 *.db-*
 *.tsbuildinfo
 .next-*
+
+__pycache__/
