@@ -9,7 +9,7 @@ type Live = { balance: number; transactions: { type: string; state: string; sats
 
 const ago = (t: number) => { if (!t) return ""; const s = Math.max(0, Math.floor(Date.now() / 1000) - t); return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)} min ago` : s < 86400 ? `${Math.floor(s / 3600)} h ago` : `${Math.floor(s / 86400)} d ago`; };
 
-export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: string; onUseAddress: (a: string) => void }) {
+export function WalletPanel({ savedAddress, onUseAddress, onChange }: { savedAddress: string; onUseAddress: (a: string) => void; onChange?: () => void }) {
   const [st, setSt] = useState<Status | null>(null);
   const [live, setLive] = useState<Live | null>(null);
   const [link, setLink] = useState("");
@@ -31,12 +31,12 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
   async function connect() {
     if (link.trim().length < 20) { setErr("Paste your wallet connection link first. It starts with nostr+walletconnect://"); return; }
     setBusy(true); setErr("");
-    try { const s = await authedFetch("/api/wallet/link", { body: { nwc: link } }); setSt(s); setLink(""); await refresh(); } catch (e: any) { setErr(e.message); }
+    try { const s = await authedFetch("/api/wallet/link", { body: { nwc: link } }); setSt(s); setLink(""); await refresh(); onChange?.(); } catch (e: any) { setErr(e.message); }
     setBusy(false);
   }
   async function disconnect() {
     if (!confirm("Disconnect this wallet from Sats-for-Data? Your wallet and funds are not affected.")) return;
-    await authedFetch("/api/wallet/link", { body: { action: "disconnect" } }); setSt({ connected: false, sandbox: st?.sandbox }); setLive(null); setInv(null); setOpen(false);
+    await authedFetch("/api/wallet/link", { body: { action: "disconnect" } }); setSt({ connected: false, sandbox: st?.sandbox }); setLive(null); setInv(null); setOpen(false); onChange?.();
   }
   async function makeInvoice() {
     setBusy(true); setErr(""); setGot(null);
@@ -57,9 +57,9 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
   );
 
   if (!st.connected && !showForm) return (
-    <section className="card wp-compact">
-      <div><h3 style={{ marginBottom: 2 }}>Your Lightning wallet <span className="pill">optional</span></h3>
-        <p className="muted small" style={{ margin: 0 }}>See your live balance and payments, and receive sats, right here.</p></div>
+    <section className="card wp-compact" id="wallet-panel">
+      <div><h3 style={{ marginBottom: 2 }}>Your Lightning wallet <span className="pill">recommended</span></h3>
+        <p className="muted small" style={{ margin: 0 }}>Get paid straight into it with no address needed, see your balance, and receive sats.</p></div>
       <button className="btn sm secondary" onClick={() => setShowForm(true)}>Connect</button>
     </section>
   );
@@ -77,7 +77,7 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
   );
 
   return (
-    <section className="card wp">
+    <section className="card wp" id="wallet-panel">
       <div className="wp-head">
         <div><div className="label">Your Lightning wallet{st.alias ? ` · ${st.alias}` : ""}</div>
           <div className="wp-bal">⚡ {live ? live.balance.toLocaleString() : "…"} <span>sats</span></div>
@@ -89,8 +89,10 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
       </div>
       <div style={{ margin: "8px 0 4px" }}>
         {st.canSend ? <span className="pill bad" title="This link can also send payments">⚠ link can also send</span> : <span className="pill paid">✓ read-only link</span>}
-        {st.lud16 && st.lud16.toLowerCase() !== (savedAddress || "").toLowerCase() && <button className="linkbtn" onClick={() => onUseAddress(st.lud16!)}>Use {st.lud16} for my payouts</button>}
-        {st.lud16 && st.lud16.toLowerCase() === (savedAddress || "").toLowerCase() && <span className="pill">payouts go to this wallet</span>}
+        {st.canInvoice
+          ? <span className="pill paid">✓ payouts are paid into this wallet</span>
+          : <span className="pill bad" title="This link cannot create invoices">⚠ cannot create invoices, so payouts still need an address</span>}
+        {!st.canInvoice && st.lud16 && st.lud16.toLowerCase() !== (savedAddress || "").toLowerCase() && <button className="linkbtn" onClick={() => onUseAddress(st.lud16!)}>Use {st.lud16} for my payouts</button>}
       </div>
       {err && <p className="err">{err}</p>}
 

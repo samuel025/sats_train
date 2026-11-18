@@ -3,7 +3,7 @@
 import { NWCClient } from "@getalby/sdk/nwc";
 import { get, run } from "./db";
 import { encrypt, decrypt } from "./crypto";
-import { canSpend } from "./safe";
+import { canSpend, invoiceAmountMsat } from "./safe";
 
 const TIMEOUT_MS = 12000;
 const friendly = "We could not reach your wallet. Check that it is online and that the connection has not been revoked.";
@@ -35,6 +35,7 @@ export async function connectWallet(pk: string, link: string) {
     await run(`INSERT INTO wallet_links (pubkey,nwc_enc,lud16,alias,methods,can_send,created_at) VALUES (?,?,?,?,?,?,?)
       ON CONFLICT(pubkey) DO UPDATE SET nwc_enc=EXCLUDED.nwc_enc, lud16=EXCLUDED.lud16, alias=EXCLUDED.alias, methods=EXCLUDED.methods, can_send=EXCLUDED.can_send, created_at=EXCLUDED.created_at`,
       pk, encrypt(link), lud16, String(info.alias || "").slice(0, 60) || null, methods.join(","), spends ? 1 : 0, Math.floor(Date.now() / 1000));
+    await run("UPDATE payouts SET status='pending', sending=0, error=NULL, release_at=? WHERE worker=? AND status='failed' AND error LIKE 'address:%'", Math.floor(Date.now() / 1000), pk);
     return { connected: true, alias: info.alias || null, lud16, canSend: spends, canInvoice: methods.includes("make_invoice"), canList: methods.includes("list_transactions") };
   } finally { c.close(); }
 }
@@ -77,3 +78,23 @@ export const receiveInvoice = (pk: string, sats: number, memo: string) => withCl
   try { inv = await timeout(c.makeInvoice({ amount: sats * 1000, description: memo || "Sats-for-Data", expiry: 3600 })); } catch { throw new Error(friendly); }
   return { invoice: inv.invoice, sats, expiresAt: inv.expires_at || Math.floor(Date.now() / 1000) + 3600 };
 });
+
+
+// Where a worker's payouts go: their connected wallet (it creates the invoice, so no Lightning address is needed) or a Lightning address.
+export async function payoutVia(pk: string): Promise<"wallet" | "address" | null> {
+  const r = await get("SELECT methods FROM wallet_links WHERE pubkey=?", pk);
+  if (r && String(r.methods).split(",").includes("make_invoice")) return "wallet";
+  return (await get("SELECT 1 FROM workers WHERE pubkey=? AND lightning_address IS NOT NULL AND lightning_address<>''", pk)) ? "address" : null;
+}
+
+// Ask the worker's own wallet for an invoice of exactly `sats`. Returns null if they have no usable connected wallet.
+export async function invoiceFromWorkerWallet(worker: string, sats: number, memo: string): Promise<string | null> {
+  const r = await get("SELECT nwc_enc, methods FROM wallet_links WHERE pubkey=?", worker);
+  if (!r || !String(r.methods).split(",").includes("make_invoice")) return null;
+  const c = new NWCClient({ nostrWalletConnectUrl: decrypt(r.nwc_enc) });
+  try {
+    const inv = await timeout(c.makeInvoice({ amount: sats * 1000, description: memo.slice(0, 120), expiry: 3600 }));
+    if (!inv.invoice || invoiceAmountMsat(inv.invoice) !== sats * 1000) throw new Error("The wallet returned an invoice for a different amount, so nothing was paid");
+    return inv.invoice;
+  } finally { c.close(); }
+}

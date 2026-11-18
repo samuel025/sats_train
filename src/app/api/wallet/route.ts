@@ -2,6 +2,7 @@ import { all, get, run } from "@/lib/db";
 import { withAuth } from "@/lib/auth";
 import { todayPaid, kickRelease, checkAddress } from "@/lib/payout";
 import { reputation } from "@/lib/reputation";
+import { payoutVia } from "@/lib/wallet";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // grading, payouts and Nostr publishing can take a while
@@ -10,12 +11,12 @@ export async function GET(req: Request) {
   return withAuth(req, async (pk) => {
     kickRelease();
     const w = await get("SELECT lightning_address a FROM workers WHERE pubkey=?", pk);
-    const payouts = await all("SELECT p.id,p.sats,p.status,p.error,p.created_at,p.release_at,t.title FROM payouts p JOIN tasks t ON t.id=p.task_id WHERE p.worker=? ORDER BY p.created_at DESC LIMIT 50", pk);
+    const payouts = await all("SELECT p.id,p.sats,p.status,p.error,p.created_at,p.release_at,p.sending,p.via,t.title FROM payouts p JOIN tasks t ON t.id=p.task_id WHERE p.worker=? ORDER BY p.created_at DESC LIMIT 50", pk);
     const total = (await get("SELECT COALESCE(SUM(sats),0) s FROM payouts WHERE worker=? AND status='paid'", pk))!.s;
     const mine = await all(`SELECT t.id,t.title,t.kind,t.status,t.pause_reason,
       (SELECT COUNT(*) FROM items i WHERE i.task_id=t.id AND i.is_check=0) items,
       (SELECT COUNT(*) FROM payouts p WHERE p.task_id=t.id AND p.status='paid') paid FROM tasks t WHERE t.requester=? ORDER BY t.created_at DESC`, pk);
-    return { address: w?.a || "", pubkey: pk, reputation: await reputation(pk), total, today: await todayPaid(pk), cap: Number(process.env.DAILY_CAP_SATS || 2000), payouts, myTasks: mine };
+    return { address: w?.a || "", payoutVia: await payoutVia(pk), pubkey: pk, reputation: await reputation(pk), total, today: await todayPaid(pk), cap: Number(process.env.DAILY_CAP_SATS || 2000), payouts, myTasks: mine };
   });
 }
 

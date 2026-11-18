@@ -20,14 +20,14 @@ function BackupBanner({ onDone }: { onDone: () => void }) {
 
 // Points a worker at the one step that blocks getting paid: a wallet address.
 function SetupHint({ path }: { path: string }) {
-  const [s, setS] = useState<{ hasAddress: boolean; pendingSats: number; accepted: number } | null>(null);
+  const [s, setS] = useState<{ hasPayout: boolean; pendingSats: number; accepted: number } | null>(null);
   useEffect(() => { authedFetch("/api/me/setup").then(setS).catch(() => {}); }, [path]);
-  if (!s || s.hasAddress || path === "/wallet" || path.startsWith("/wallet-help")) return null;
+  if (!s || s.hasPayout || path === "/wallet" || path.startsWith("/wallet-help")) return null;
   if (!(s.pendingSats > 0 || s.accepted > 0 || path.startsWith("/task/"))) return null; // don't nag before the person has even tried a task
   return (
     <div className="banner">
-      <div>{s.pendingSats > 0 ? <><b>{s.pendingSats.toLocaleString()} sats are waiting for you.</b> Add a wallet address to receive them.</> : <><b>Add a wallet address to get paid.</b> Accepted answers are sent there.</>}</div>
-      <div className="banner-actions"><Link className="btn sm" href="/wallet#payaddr">Add address</Link><Link className="btn sm secondary" href="/wallet-help">How?</Link></div>
+      <div>{s.pendingSats > 0 ? <><b>{s.pendingSats.toLocaleString()} sats are waiting for you.</b> Choose where to receive them.</> : <><b>Choose where to get paid.</b> Add a wallet address or connect your wallet.</>}</div>
+      <div className="banner-actions"><Link className="btn sm" href="/wallet#payaddr">Set up</Link><Link className="btn sm secondary" href="/wallet-help">How?</Link></div>
     </div>
   );
 }

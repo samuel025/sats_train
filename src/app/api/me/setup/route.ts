@@ -1,5 +1,6 @@
 import { get } from "@/lib/db";
 import { withAuth } from "@/lib/auth";
+import { payoutVia } from "@/lib/wallet";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,6 @@ export async function GET(req: Request) {
     const a = await get("SELECT lightning_address a FROM workers WHERE pubkey=?", pk);
     const p = (await get("SELECT COALESCE(SUM(sats),0) s FROM payouts WHERE worker=? AND status='pending'", pk))!;
     const acc = (await get("SELECT COUNT(*) c FROM submissions WHERE worker=? AND verdict='pass'", pk))!;
-    return { hasAddress: !!a?.a, pendingSats: p.s as number, accepted: acc.c as number };
+    return { hasAddress: !!a?.a, hasPayout: !!(await payoutVia(pk)), pendingSats: p.s as number, accepted: acc.c as number };
   });
 }

@@ -5,6 +5,7 @@ import { all, get, run, isUniqueViolation } from "./db";
 import { DEMO_REQUESTER } from "./seed";
 import { publicJson, invoiceAmountMsat } from "./safe";
 import { decrypt } from "./crypto";
+import { invoiceFromWorkerWallet, payoutVia } from "./wallet";
 
 // Looks the address up (LNURL-pay) without paying, so a typo is caught when it is saved, not after the work is done.
 export async function checkAddress(addr: string): Promise<{ ok: boolean; min?: number; max?: number; error?: string }> {
@@ -68,20 +69,24 @@ export async function releaseDue() {
     for (const p of due) {
       if (await flaggedWorker(p.task_id, p.worker)) { await run("UPDATE payouts SET status='withheld', error='Quality check failed on this task' WHERE id=?", p.id); continue; }
       const w = await get("SELECT lightning_address a FROM workers WHERE pubkey=?", p.worker);
-      if (!w?.a) continue;                                   // stays held until they add an address
+      if (!(await payoutVia(p.worker))) continue;            // stays held until they add an address or connect a wallet
       if ((await todayPaid(p.worker)) + p.sats > cap) continue; // stays held until under the daily cap
       if ((await run("UPDATE payouts SET sending=1 WHERE id=? AND sending=0", p.id)) !== 1) continue;
-      const task = (await get("SELECT nwc_enc, requester FROM tasks WHERE id=?", p.task_id))!;
-      if (process.env.MOCK_PAYMENTS === "1") { await run("UPDATE payouts SET status='paid', preimage='mock' WHERE id=?", p.id); continue; }
+      const task = (await get("SELECT nwc_enc, requester, title FROM tasks WHERE id=?", p.task_id))!;
+      if (process.env.MOCK_PAYMENTS === "1") { await run("UPDATE payouts SET status='paid', preimage='mock', via=? WHERE id=?", (await payoutVia(p.worker)) || "address", p.id); continue; }
       // Two failure kinds: the worker's address (they can fix it) or the requester's wallet (pauses the task).
       let stage: "address" | "wallet" = "address";
       try {
-        const invoice = await invoiceFromAddress(w.a, p.sats);
+        // Prefer the worker's connected wallet (it creates the invoice); fall back to their Lightning address.
+        const memo = p.item_id.startsWith("rev:") ? "Sats-for-Data: verified a recording" : `Sats-for-Data: ${task.title}`;
+        let invoice: string | null = null, via = "address";
+        try { invoice = await invoiceFromWorkerWallet(p.worker, p.sats, memo); if (invoice) via = "wallet"; } catch (e) { if (!w?.a) throw e; }
+        if (!invoice) { if (!w?.a) throw new Error("No payout address"); invoice = await invoiceFromAddress(w.a, p.sats); }
         stage = "wallet";
         const nwc = new NWCClient({ nostrWalletConnectUrl: decrypt(task.nwc_enc) });
         try {
           const r = await nwc.payInvoice({ invoice });
-          await run("UPDATE payouts SET status='paid', preimage=? WHERE id=?", r.preimage, p.id);
+          await run("UPDATE payouts SET status='paid', preimage=?, via=? WHERE id=?", r.preimage, via, p.id);
         } finally { nwc.close(); }
       } catch (e: any) {
         const msg = String(e?.message || "Payment failed").slice(0, 200);

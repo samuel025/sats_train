@@ -34,7 +34,7 @@ Set `MOCK_PAYMENTS=0`. Demo tasks are then paid from a **sandbox wallet** (Alby'
 4. The requester downloads the dataset (JSONL, CSV, or a ZIP with audio) with agreement labels and a SHA-256 hash pinned on Nostr.
 
 ## The worker's wallet
-Workers can connect their own Lightning wallet with a **read-only** Nostr Wallet Connect link and see, inside the app: their live balance (with a naira value), recent transactions, and a **Receive** button that creates a Lightning invoice with a QR code and detects the payment when it arrives. The server refuses any link that can send money, so it can never spend a worker's funds, and a worker can disconnect at any time. A connected wallet's Lightning address can be used for payouts in one tap.
+Workers can connect their own Lightning wallet with a **read-only** Nostr Wallet Connect link and see, inside the app: their live balance (with a naira value), recent transactions, and a **Receive** button that creates a Lightning invoice with a QR code and detects the payment when it arrives. The server refuses any link that can send money, so it can never spend a worker's funds, and a worker can disconnect at any time. **A connected wallet is also the easiest way to get paid:** the worker's wallet creates the invoice (the app checks it is for exactly the reward), so no Lightning address is needed. A Lightning address still works as a fallback. Payouts show a live Held → Sending → Paid tracker with a "+N sats received" toast. Requesters can press **Check funding** on a task to see its wallet balance, spending cap left, and what the task may still pay, with a warning before it runs short.
 
 ## Task types
 | Type | What the worker does | How quality is checked |
@@ -62,6 +62,7 @@ See [.env.example](.env.example). The important ones: `NEON_POSTGRES` / `DATABAS
 
 ## Tests
 - `npm run test:unit`: address guard, invoice amounts, encryption, tone-mark matching.
+- `npm run test:payout`: payouts into a connected wallet (no address), the address fallback, and the requester funding check, against sandbox wallets. Needs internet and a server with `MOCK_PAYMENTS=0 ALLOW_SPENDING_WALLET_LINKS=1 PAYOUT_COOLDOWN_SECS=3 MIN_ANSWER_SECS=1`.
 - `npm run test:wallet`: the wallet panel against sandbox wallets (connect, balance, invoice paid by a different wallet, privacy, and refusal of links that can send). Needs internet and a server started with `ALLOW_SPENDING_WALLET_LINKS=1`.
 - `npm run test:e2e`: the real flows against a running app in simulated-payment mode (auth, posting, anti-abuse, ranking and payouts, hidden checks, qualification, voice consent, exports and provenance). `BASE_URL` defaults to `http://localhost:3000`.
 

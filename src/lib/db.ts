@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS consents (
 CREATE TABLE IF NOT EXISTS wallet_links (
   pubkey TEXT PRIMARY KEY, nwc_enc TEXT NOT NULL, lud16 TEXT, alias TEXT, methods TEXT NOT NULL, can_send INTEGER NOT NULL DEFAULT 0, created_at BIGINT NOT NULL
 );
+ALTER TABLE payouts ADD COLUMN IF NOT EXISTS via TEXT;
 CREATE INDEX IF NOT EXISTS idx_items_task ON items(task_id, position);
 CREATE INDEX IF NOT EXISTS idx_sub_item ON submissions(item_id, worker);
 CREATE INDEX IF NOT EXISTS idx_sub_worker ON submissions(worker, task_id);
