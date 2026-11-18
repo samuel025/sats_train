@@ -9,10 +9,10 @@ export default function Landing() {
       {/* HERO: warm radial wash, poster headline */}
       <section className="lp-hero">
         <div className="lp-wrap">
-          <div className="tag rise" style={{ "--d": "0ms" } as React.CSSProperties}>Paid in bitcoin · No bank account · Local languages</div>
-          <h1 className="lp-h1 rise" style={{ "--d": "80ms" } as React.CSSProperties}>Teach AI your language. Get paid in sats.</h1>
+          <div className="tag rise" style={{ "--d": "0ms" } as React.CSSProperties}>Built for Africa · Paid in bitcoin · No bank account</div>
+          <h1 className="lp-h1 rise" style={{ "--d": "80ms" } as React.CSSProperties}>Teach AI your African language. Get paid in sats.</h1>
           <p className="lead rise" style={{ "--d": "180ms" } as React.CSSProperties}>
-            Translate, record your voice, rank AI replies, or verify other speakers in Nigerian Pidgin, Yoruba and Hausa. Approved work is paid in bitcoin sats, straight to your wallet. No bank account needed.
+            Translate, record your voice, rank AI replies, or verify other speakers in Nigerian Pidgin, Yoruba and Hausa, with more African languages coming. Approved work is paid in bitcoin sats, straight to your wallet. No bank account needed.
           </p>
           <div className="lp-cta rise" style={{ "--d": "280ms" } as React.CSSProperties}>
             <Link href="/tasks" className="btn inline">Start earning <Arrow /></Link>
@@ -50,8 +50,8 @@ export default function Landing() {
           <Reveal><div className="tag">The problem</div>
           <h2 className="lp-h2">Two gaps, one payment network.</h2></Reveal>
           <div className="lp-3">
-            <Reveal delay={0}><div className="card pink"><h3>Phones, but no bank access</h3><p className="muted">Many young people have a smartphone and spare time but no way to receive international payments.</p></div></Reveal>
-            <Reveal delay={110}><div className="card mint"><h3>AI that struggles locally</h3><p className="muted">Mainstream AI has little data in Nigerian Pidgin, Yoruba and Hausa, so it works worse for the people who speak them.</p></div></Reveal>
+            <Reveal delay={0}><div className="card pink"><h3>Phones, but no bank access</h3><p className="muted">Across Africa, many young people have a smartphone and spare time but no way to receive international payments.</p></div></Reveal>
+            <Reveal delay={110}><div className="card mint"><h3>AI that struggles locally</h3><p className="muted">Mainstream AI has little data in African languages, starting with Nigerian Pidgin, Yoruba and Hausa, so it works worse for the people who speak them.</p></div></Reveal>
             <Reveal delay={220}><div className="card yellow"><h3>No simple bridge</h3><p className="muted">Data platforms need cards and identity checks and pay in dollars. Lightning pays tiny amounts instantly to anyone, and amounts are shown in your local currency.</p></div></Reveal>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function Landing() {
       {/* CTA */}
       <section className="lp-sec charcoal">
         <div className="lp-wrap">
-          <Reveal><h2 className="lp-h2" style={{ margin: "0 auto 32px", maxWidth: 720 }}>Ready to teach AI your language?</h2>
+          <Reveal><h2 className="lp-h2" style={{ margin: "0 auto 32px", maxWidth: 720 }}>Ready to teach AI your African language?</h2>
           <div className="lp-cta">
             <Link href="/tasks" className="btn inline lp-light">Start earning <Arrow /></Link>
             <Link href="/post" className="btn inline lp-ghost">Post a task</Link>
@@ -125,7 +125,7 @@ export default function Landing() {
       </section>
 
       <footer className="lp-footer">
-        <div className="lp-wrap">⚡ Sats-for-Data · Open source (MIT) · Built for the Dakar Bitcoin Hackathon 2026</div>
+        <div className="lp-wrap">⚡ Sats-for-Data · Open source (MIT) · Built in Africa for the Dakar Bitcoin Hackathon 2026</div>
       </footer>
     </div>
   );
