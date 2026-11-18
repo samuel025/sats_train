@@ -1,17 +1,20 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authedFetch } from "@/lib/client";
 import { Naira } from "@/components/Naira";
+import { WalletPanel } from "@/components/WalletPanel";
 
 export default function Wallet() {
   const [w, setW] = useState<any>(null);
   const [resume, setResume] = useState<Record<string, string>>({}); const [rmsg, setRmsg] = useState("");
+  const dirty = useRef(false); // true once the person has typed, so the 5-second refresh never overwrites their input
   const [addr, setAddr] = useState(""); const [msg, setMsg] = useState(""); const [prov, setProv] = useState("");
-  const load = () => authedFetch("/api/wallet").then((x) => { setW(x); setAddr(x.address); });
+  const load = () => authedFetch("/api/wallet").then((x) => { setW(x); if (!dirty.current) setAddr(x.address); });
   useEffect(() => { load().catch((e) => setMsg(e.message)); const t = setInterval(() => load().catch(() => {}), 5000); return () => clearInterval(t); }, []);
 
-  async function save() { setMsg("Checking address…"); try { const r = await authedFetch("/api/wallet", { body: { address: addr } }); setMsg(r.retried ? `Saved ✓ ${r.retried} held payment(s) will be retried.` : "Saved ✓"); load(); } catch (e: any) { setMsg(e.message); } }
+  async function save() { setMsg("Checking address…"); try { const r = await authedFetch("/api/wallet", { body: { address: addr } }); setMsg(r.retried ? `Saved ✓ ${r.retried} held payment(s) will be retried.` : "Saved ✓"); dirty.current = false; load(); } catch (e: any) { setMsg(e.message); } }
+  async function useWalletAddress(a: string) { try { await authedFetch("/api/wallet", { body: { address: a } }); setMsg("Payout address set ✓"); dirty.current = false; load(); } catch (e: any) { setMsg(e.message); } }
   async function testAddr() { setMsg("Checking address…"); try { const r = await authedFetch("/api/wallet/test", { body: { address: addr } }); setMsg(r.ok ? `This address works ✓ (accepts ${r.min}–${r.max.toLocaleString()} sats)` : r.error); } catch (e: any) { setMsg(e.message); } }
   async function resumeTask(id: string) { setRmsg("Checking wallet link…"); try { const r = await authedFetch(`/api/tasks/${id}/resume`, { body: { nwc: resume[id] || "" } }); setRmsg(`Task resumed ✓${r.balance !== null ? ` Wallet balance: ${r.balance} sats.` : ""}${r.retried ? ` ${r.retried} failed payment(s) are being retried.` : ""}`); load(); } catch (e: any) { setRmsg(e.message); } }
   async function download(id: string, format: string) {
@@ -26,11 +29,12 @@ export default function Wallet() {
       <div className="tag">Wallet</div>
       <h1>Your wallet</h1>
       <section className="card float" style={{ background: "var(--indigo)", color: "#fff", boxShadow: "none" }}>
-        <div className="label" style={{ color: "#fff", opacity: .8 }}>Total earned</div>
+        <div className="label" style={{ color: "#fff", opacity: .8 }}>Earned on Sats-for-Data</div>
         <div style={{ font: "400 56px/1 var(--font-sans)", letterSpacing: "-.05em", margin: "8px 0" }}>⚡ {w.total.toLocaleString()} sats</div>
         <div style={{ opacity: .85, marginBottom: 4 }}><Naira sats={w.total} className="" /></div>
         <div style={{ fontSize: 14, opacity: .9 }}>{w.today} of {w.cap} sats paid in the last 24 hours (daily limit)</div>
       </section>
+      <WalletPanel savedAddress={w.address} onUseAddress={useWalletAddress} />
       <section className="card">
         <div className="label">Your reputation · follows your account key</div>
         <div className="row" style={{ marginTop: 12 }}>
@@ -42,7 +46,7 @@ export default function Wallet() {
       </section>
       <section className="card">
       <label>Wallet address for payouts (a Lightning address)</label>
-      <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="you@walletofsatoshi.com" autoCapitalize="none" />
+      <input value={addr} onChange={(e) => { dirty.current = true; setAddr(e.target.value); }} placeholder="you@walletofsatoshi.com" autoCapitalize="none" />
       <div className="row" style={{ gap: 8 }}><button className="btn inline" onClick={save}>Save address</button><button className="btn inline secondary" onClick={testAddr}>Test address</button></div>{msg && <p className="muted small">{msg}</p>}
       <p className="hint" style={{ marginTop: 8 }}>No wallet address yet? <Link href="/wallet-help">See how to get one</Link>.</p>
       </section>

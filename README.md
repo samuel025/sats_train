@@ -33,6 +33,9 @@ Set `MOCK_PAYMENTS=0`. Demo tasks are then paid from a **sandbox wallet** (Alby'
 3. Answers are checked, and accepted ones are paid in sats to the worker's wallet address after a short anti-abuse hold.
 4. The requester downloads the dataset (JSONL, CSV, or a ZIP with audio) with agreement labels and a SHA-256 hash pinned on Nostr.
 
+## The worker's wallet
+Workers can connect their own Lightning wallet with a **read-only** Nostr Wallet Connect link and see, inside the app: their live balance (with a naira value), recent transactions, and a **Receive** button that creates a Lightning invoice with a QR code and detects the payment when it arrives. The server refuses any link that can send money, so it can never spend a worker's funds, and a worker can disconnect at any time. A connected wallet's Lightning address can be used for payouts in one tap.
+
 ## Task types
 | Type | What the worker does | How quality is checked |
 |---|---|---|
@@ -52,13 +55,14 @@ The LLM is a **spam, gibberish and coherence filter**, not a translation authori
 - Reputation follows the account key and is public at `/api/reputation/<pubkey>`.
 
 ## Security at a glance
-No custody of funds · NWC links encrypted at rest · invoice amounts verified before paying · server-side request forgery guard on wallet lookups · signed, replay-limited requests · parameterised SQL · validated, bounded inputs · security headers and CSP · fail-closed grading and secrets. Details and known gaps: [THREAT_MODEL.md](THREAT_MODEL.md).
+No custody of funds · read-only wallet links only · NWC links encrypted at rest · invoice amounts verified before paying · server-side request forgery guard on wallet lookups · signed, replay-limited requests · parameterised SQL · validated, bounded inputs · security headers and CSP · fail-closed grading and secrets. Details and known gaps: [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Configuration
 See [.env.example](.env.example). The important ones: `NEON_POSTGRES` / `DATABASE_URL`, `APP_SECRET` (required in production, 16+ characters), `GEMINI_API_KEY`, `MOCK_PAYMENTS`, `DEMO_NWC`.
 
 ## Tests
 - `npm run test:unit`: address guard, invoice amounts, encryption, tone-mark matching.
+- `npm run test:wallet`: the wallet panel against sandbox wallets (connect, balance, invoice paid by a different wallet, privacy, and refusal of links that can send). Needs internet and a server started with `ALLOW_SPENDING_WALLET_LINKS=1`.
 - `npm run test:e2e`: the real flows against a running app in simulated-payment mode (auth, posting, anti-abuse, ranking and payouts, hidden checks, qualification, voice consent, exports and provenance). `BASE_URL` defaults to `http://localhost:3000`.
 
 ## Known limits

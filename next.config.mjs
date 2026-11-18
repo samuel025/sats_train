@@ -20,6 +20,7 @@ export default {
   outputFileTracingRoot: process.cwd(),
   serverExternalPackages: ["pg", "nostr-tools", "@getalby/sdk", "ws"],
   poweredByHeader: false,
+  distDir: process.env.NEXT_DIST_DIR || ".next", // lets a second build (tests, previews) live beside the dev server
   async headers() {
     return [{
       source: "/:path*",

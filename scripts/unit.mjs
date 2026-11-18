@@ -1,5 +1,5 @@
 // Unit tests for the security-critical pure logic. Run: npm test (Node 22.6+ strips the TypeScript types).
-import { isPrivateIp, publicJson, invoiceAmountMsat } from "../src/lib/safe.ts";
+import { isPrivateIp, publicJson, invoiceAmountMsat, canSpend, spendingMethods } from "../src/lib/safe.ts";
 import { fold, similarity } from "../src/lib/text.ts";
 import { encrypt, decrypt } from "../src/lib/crypto.ts";
 import { BANK, PASS_MARK } from "../src/lib/qualify.ts";
@@ -28,6 +28,12 @@ amt("lnbc5000n1pabcdef", 500_000);        // 500 sats
 amt("lntb20n1pabcdef", 2_000);            // testnet
 ok("zero-amount invoice has no amount", invoiceAmountMsat("lnbc1pabcdefghijk") === null);
 ok("garbage has no amount", invoiceAmountMsat("not an invoice") === null && invoiceAmountMsat("") === null);
+
+console.log("safe.ts: wallet-link permissions");
+ok("a read-only link is accepted", !canSpend(["get_info", "get_balance", "make_invoice", "lookup_invoice", "list_transactions"]));
+for (const m of ["pay_invoice", "pay_keysend", "multi_pay_invoice", "multi_pay_keysend"]) ok(`a link with ${m} is treated as able to spend`, canSpend(["get_balance", m]));
+ok("lists exactly the money-moving methods", spendingMethods(["get_balance", "pay_invoice", "make_invoice", "pay_keysend"]).join() === "pay_invoice,pay_keysend");
+ok("hold-invoice and budget methods do not move money", !canSpend(["get_balance", "make_hold_invoice", "settle_hold_invoice", "cancel_hold_invoice", "get_budget"]));
 
 console.log("text.ts: tone marks and spelling variants");
 ok("folds Yoruba tone marks", fold("Ẹ káàárọ̀") === "e kaaaro", fold("Ẹ káàárọ̀"));

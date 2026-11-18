@@ -47,6 +47,8 @@ Everything outside the app server is untrusted, including the worker's wallet se
 | **Server-side request forgery** (a worker enters an address whose host resolves to an internal service or cloud metadata) | Wallet lookups go through a guard that allows only public HTTPS on port 443, refuses IP literals, refuses redirects, caps response size, and rejects private, loopback and link-local addresses **inside the connection's own DNS lookup**, so DNS rebinding cannot bypass it. | ✅ unit tested |
 | Double payment (retries, replays, race conditions) | A unique database constraint on (item, worker) means one payout per item. Payouts are claimed with an atomic flag before sending. | ✅ |
 | Payout stuck if the process dies after claiming it | A payout claimed but not completed stays in `pending` and needs manual review. | 🟡 |
+| A worker connects their own wallet, and the stored link could be used to spend their funds | The server **refuses any connection that can send payments** (it checks the wallet's declared permissions) and only accepts read-only links: read balance, read transactions, create invoices. Links are encrypted at rest and can be disconnected at any time. A sandbox switch (`ALLOW_SPENDING_WALLET_LINKS`) exists for testing with faucet wallets, is off by default, and is flagged in the interface. | ✅ tested both ways |
+| Wallet panel used to hammer relays or other users' wallets | Every call needs a signed request, only the owner can read their wallet, and calls are throttled per account (per server instance). | 🟡 |
 | Requester's wallet runs dry, so workers do unpaid work | Two funding failures pause the task, and workers see it paused. The requester fixes it and resumes, and failed payouts are retried. | ✅ tested |
 
 ### Identity and access

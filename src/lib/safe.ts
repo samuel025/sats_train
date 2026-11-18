@@ -58,3 +58,8 @@ export function invoiceAmountMsat(invoice: string): number | null {
   const msat = Number(m[1]) * mult * 1e11; // 1 BTC = 1e11 msat
   return Number.isFinite(msat) ? Math.round(msat) : null;
 }
+
+// Wallet-link permissions (NIP-47 methods). A link that can move money must never be stored by a server we run.
+const SPENDING = ["pay_invoice", "pay_keysend", "multi_pay_invoice", "multi_pay_keysend"];
+export const spendingMethods = (methods: string[]) => methods.filter((m) => SPENDING.includes(m));
+export const canSpend = (methods: string[]) => spendingMethods(methods).length > 0;

@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS quals (
 CREATE TABLE IF NOT EXISTS consents (
   pubkey TEXT NOT NULL, kind TEXT NOT NULL, version INTEGER NOT NULL, accepted_at BIGINT, withdrawn_at BIGINT, PRIMARY KEY(pubkey, kind)
 );
+CREATE TABLE IF NOT EXISTS wallet_links (
+  pubkey TEXT PRIMARY KEY, nwc_enc TEXT NOT NULL, lud16 TEXT, alias TEXT, methods TEXT NOT NULL, can_send INTEGER NOT NULL DEFAULT 0, created_at BIGINT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_items_task ON items(task_id, position);
 CREATE INDEX IF NOT EXISTS idx_sub_item ON submissions(item_id, worker);
 CREATE INDEX IF NOT EXISTS idx_sub_worker ON submissions(worker, task_id);
