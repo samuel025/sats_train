@@ -71,6 +71,9 @@ ok("guesses currency from the browser locale", guessCurrency("sw-KE") === "KES" 
 ok("launch set is Nigerian only", ["English", "Nigerian Pidgin", "Yoruba", "Hausa"].every(isEnabled) && !isEnabled("Swahili") && !isEnabled("Tumbuka"));
 ok("tasks may only use enabled languages", allowedLang("yoruba") === "Yoruba" && allowedLang("Swahili") === null && allowedLang("Tumbuka") === null);
 
+ok("Latin and tone-marked text is never right-to-left", ["Good evening, how was your day?", "Ẹ káàárọ̀", "Ina kwana", "xudunsdndsinsds", "Wetin dey happen?", "ɛte sɛn"].every((t) => dirFor("English", t) === "ltr" && dirFor("Yoruba", t) === "ltr"));
+ok("Ethiopic stays left-to-right, Adlam goes right-to-left", dirFor("Amharic", "አመሰግናለሁ") === "ltr" && dirFor("Fula", "\u{1E922}\u{1E923}") === "rtl");
+
 console.log("text.ts: other African orthographies");
 ok("folds Twi/Ewe/Hausa special letters", similarity("Akwaaba, ɛte sɛn?", "akwaaba ete sen") === 1 && fold("ƙasa ɗaya ɓoye") === "kasa daya boye", fold("ƙasa ɗaya ɓoye"));
 ok("folds Arabic vowel marks and alef forms", fold("أَهْلاً") === fold("اهلا"), fold("أَهْلاً"));

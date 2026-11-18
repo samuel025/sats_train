@@ -76,7 +76,7 @@ export const findLang = (name: string) => byName.get(String(name).trim().toLower
 
 // Right-to-left scripts (Arabic, Hebrew, Thaana, N'Ko, Adlam, Syriac) so prompts and answer boxes display correctly,
 // including for a language the registry has never heard of.
-const RTL_SCRIPT = /[֐-ࣿ߀-߿Ẑ0-ẕFיִ-﷿ﹰ-﻿]/u;
+const RTL_SCRIPT = /[֐-ࣿ\u{1E900}-\u{1E95F}יִ-﷿ﹰ-﻿]/u; // Hebrew, Arabic, Syriac, Thaana, N'Ko, Adlam
 export const isRtl = (lang: string, sample = "") => !!findLang(lang)?.rtl || RTL_SCRIPT.test(sample);
 export const dirFor = (lang: string, sample = ""): "rtl" | "ltr" => (isRtl(lang, sample) ? "rtl" : "ltr");
 
