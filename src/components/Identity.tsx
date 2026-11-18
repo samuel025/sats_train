@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Identity, getIdentity, createKey, signInExtension, importKey, backupKey, signOut } from "@/lib/client";
+import { Identity, getIdentity, createKey, signInExtension, importKey, backupKey, signOut, authedFetch } from "@/lib/client";
 
 function BackupBanner({ onDone }: { onDone: () => void }) {
   const save = () => {
@@ -14,6 +14,20 @@ function BackupBanner({ onDone }: { onDone: () => void }) {
     <div className="banner">
       <div><b>Back up your account key.</b> It is your account. If you clear this browser without a backup, your account and unpaid earnings are lost.</div>
       <div className="banner-actions"><button className="btn sm" onClick={save}>Download key file</button><button className="btn sm secondary" onClick={() => { localStorage.setItem("sfd_backed_up", "1"); onDone(); }}>I saved it</button></div>
+    </div>
+  );
+}
+
+// Points a worker at the one step that blocks getting paid: a wallet address.
+function SetupHint({ path }: { path: string }) {
+  const [s, setS] = useState<{ hasAddress: boolean; pendingSats: number; accepted: number } | null>(null);
+  useEffect(() => { authedFetch("/api/me/setup").then(setS).catch(() => {}); }, [path]);
+  if (!s || s.hasAddress || path === "/wallet" || path.startsWith("/wallet-help")) return null;
+  if (!(s.pendingSats > 0 || s.accepted > 0 || path.startsWith("/task/"))) return null; // don't nag before the person has even tried a task
+  return (
+    <div className="banner">
+      <div>{s.pendingSats > 0 ? <><b>{s.pendingSats.toLocaleString()} sats are waiting for you.</b> Add a wallet address to receive them.</> : <><b>Add a wallet address to get paid.</b> Accepted answers are sent there.</>}</div>
+      <div className="banner-actions"><Link className="btn sm" href="/wallet#payaddr">Add address</Link><Link className="btn sm secondary" href="/wallet-help">How?</Link></div>
     </div>
   );
 }
@@ -67,7 +81,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 {err && <p className="err">{err}</p>}
               </details>
             </section>
-          ) : (<>{id.mode === "local" && !backed && <BackupBanner onDone={() => setBacked(true)} />}{children}{footer}</>)}
+          ) : (<>{id.mode === "local" && !backed && <BackupBanner onDone={() => setBacked(true)} />}<SetupHint path={path} />{children}{footer}</>)}
         </main>
       )}
     </Ctx.Provider>

@@ -23,32 +23,61 @@ export default function Wallet() {
     setProv(`Dataset sha256 ${r.headers.get("x-dataset-sha256")}${ev ? ` · pinned on Nostr in signed event ${ev}` : ""}`);
     const a = document.createElement("a"); a.href = URL.createObjectURL(await r.blob()); a.download = `dataset-${id.slice(0, 8)}.${format === "csv" ? "csv" : format === "zip" ? "zip" : "jsonl"}`; a.click();
   }
+  useEffect(() => { if (w && location.hash === "#payaddr") document.getElementById("payaddr")?.focus(); }, [!!w]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!w) return <p className="muted">{msg || "Loading…"}</p>;
+  const waiting = w.payouts.filter((p: any) => p.status === "pending").reduce((n: number, p: any) => n + p.sats, 0);
+  const addressFailed = w.payouts.some((p: any) => p.status === "failed" && String(p.error || "").startsWith("address:"));
+  const steps = [
+    { done: !!w.address, title: "Add your wallet address", why: "Required to receive your sats.", action: <button className="btn sm" onClick={() => document.getElementById("payaddr")?.focus()}>Add address</button> },
+    { done: w.reputation.accepted > 0 || w.total > 0, title: "Complete your first task", why: "Answer one item and get paid.", action: <Link className="btn sm secondary" href="/tasks">Find a task</Link> },
+    { done: w.reputation.qualified.length > 0, title: "Pass a language test", why: "Unlocks verification work and better-paid tasks (optional).", action: <Link className="btn sm secondary" href="/qualify">Take a test</Link> },
+  ];
+  const left = steps.filter((x) => !x.done), doneCount = steps.length - left.length;
   return (
     <div className="narrow">
       <div className="tag">Wallet</div>
       <h1>Your wallet</h1>
-      <section className="card float" style={{ background: "var(--indigo)", color: "#fff", boxShadow: "none" }}>
-        <div className="label" style={{ color: "#fff", opacity: .8 }}>Earned on Sats-for-Data</div>
-        <div style={{ font: "400 56px/1 var(--font-sans)", letterSpacing: "-.05em", margin: "8px 0" }}>⚡ {w.total.toLocaleString()} sats</div>
-        <div style={{ opacity: .85, marginBottom: 4 }}><Naira sats={w.total} className="" /></div>
-        <div style={{ fontSize: 14, opacity: .9 }}>{w.today} of {w.cap} sats paid in the last 24 hours (daily limit)</div>
+      {!w.address && waiting > 0 && <div className="banner"><div><b>{waiting.toLocaleString()} sats are waiting for you.</b> Add a wallet address below and they are sent automatically.</div></div>}
+      {addressFailed && <div className="banner"><div><b>A payout could not be sent.</b> Check that your wallet address below is correct, then press Save. Held payments are retried.</div></div>}
+      <section className="sum">
+        <div className="lab">Earned on Sats-for-Data</div>
+        <div className="amt">{w.total.toLocaleString()}<small>sats</small></div>
+        <div className="ngn"><Naira sats={w.total} className="" /></div>
+        <div className="meter" aria-hidden><i style={{ width: `${Math.min(100, (w.today / w.cap) * 100)}%` }} /></div>
+        <div className="cap">{w.today.toLocaleString()} of {w.cap.toLocaleString()} sats paid in the last 24 hours (daily limit)</div>
       </section>
+
+      {left.length > 0 && (
+        <section className="card todo">
+          <div className="sec-head"><h3>Get started</h3><span className="muted small">{doneCount} of {steps.length} done</span></div>
+          {steps.map((x, i) => (
+            <div key={i} className={`todo-row ${x.done ? "done" : ""}`}>
+              <span className="todo-ic" aria-hidden>{x.done ? "✓" : i + 1}</span>
+              <div className="todo-tx"><b>{x.title}</b><span>{x.done ? "Done" : x.why}</span></div>
+              {!x.done && left[0] === x ? x.action : null}
+            </div>))}
+        </section>
+      )}
+
+      <section className="card">
+        <div className="sec-head"><h3>Where your sats go</h3>{w.address && !dirty.current && <span className="pill paid">✓ address saved</span>}</div>
+        <label htmlFor="payaddr">Wallet address (a Lightning address)</label>
+        <input id="payaddr" value={addr} onChange={(e) => { dirty.current = true; setAddr(e.target.value); }} placeholder="you@walletofsatoshi.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+        <div className="row" style={{ gap: 8 }}><button className="btn inline" onClick={save}>Save address</button><button className="btn inline secondary" onClick={testAddr}>Test address</button></div>
+        {msg && <p className="muted small" style={{ margin: "6px 0 0" }}>{msg}</p>}
+        <p className="hint" style={{ margin: "8px 0 0" }}>No wallet address yet? <Link href="/wallet-help">See how to get one</Link>.</p>
+      </section>
+
       <WalletPanel savedAddress={w.address} onUseAddress={useWalletAddress} />
+
       <section className="card">
-        <div className="label">Your reputation · follows your account key</div>
-        <div className="row" style={{ marginTop: 12 }}>
-          <div className="stat"><b>{w.reputation.score}</b><span>Level: {w.reputation.level}</span></div>
-          <div className="stat"><b>{w.reputation.acceptRate}%</b><span>Accepted ({w.reputation.accepted}/{w.reputation.attempts})</span></div>
-          {w.reputation.hiddenCheckRate !== null && <div className="stat"><b>{w.reputation.hiddenCheckRate}%</b><span>Quality checks</span></div>}
+        <div className="sec-head"><h3>Your reputation</h3><span className="pill">{w.reputation.level}</span></div>
+        <div className="row" style={{ marginTop: 6 }}>
+          <div className="stat sm"><b>{w.reputation.score}</b><span>Score</span></div>
+          <div className="stat sm"><b>{w.reputation.acceptRate}%</b><span>Accepted ({w.reputation.accepted}/{w.reputation.attempts})</span></div>
+          {w.reputation.hiddenCheckRate !== null && <div className="stat sm"><b>{w.reputation.hiddenCheckRate}%</b><span>Quality checks</span></div>}
         </div>
-        <p className="hint" style={{ margin: "12px 0 0" }}>{w.reputation.level === "Trusted" ? "Top level reached." : `Next level: ${w.reputation.level === "New" ? "5 accepted answers or verifications with a score of 30+" : "20 accepted with a score of 70+"}.`} {w.reputation.qualified.length ? <>Qualified: {w.reputation.qualified.join(", ")}. </> : <><Link href="/qualify">Take a language test</Link> to unlock verification work. </>}Anyone can look it up at <code>/api/reputation/{w.pubkey.slice(0, 8)}…</code>.</p>
-      </section>
-      <section className="card">
-      <label>Wallet address for payouts (a Lightning address)</label>
-      <input value={addr} onChange={(e) => { dirty.current = true; setAddr(e.target.value); }} placeholder="you@walletofsatoshi.com" autoCapitalize="none" />
-      <div className="row" style={{ gap: 8 }}><button className="btn inline" onClick={save}>Save address</button><button className="btn inline secondary" onClick={testAddr}>Test address</button></div>{msg && <p className="muted small">{msg}</p>}
-      <p className="hint" style={{ marginTop: 8 }}>No wallet address yet? <Link href="/wallet-help">See how to get one</Link>.</p>
+        <p className="hint" style={{ margin: "10px 0 0" }}>{w.reputation.level === "Trusted" ? "Top level reached." : `Next level: ${w.reputation.level === "New" ? "5 accepted answers or verifications with a score of 30+" : "20 accepted with a score of 70+"}.`} {w.reputation.qualified.length ? <>Qualified: {w.reputation.qualified.join(", ")}.</> : <><Link href="/qualify">Take a language test</Link> to unlock verification work.</>} It follows your account key.</p>
       </section>
       <h2>Payouts</h2>
       {w.payouts.length === 0 && <p className="muted">Nothing yet. <Link href="/tasks">Find a task</Link></p>}

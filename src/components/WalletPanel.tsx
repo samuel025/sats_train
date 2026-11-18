@@ -15,6 +15,7 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
   const [link, setLink] = useState("");
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false); // receive form
+  const [showForm, setShowForm] = useState(false); // connect form (collapsed until wanted)
   const [sats, setSats] = useState(100); const [memo, setMemo] = useState("");
   const [inv, setInv] = useState<{ invoice: string; sats: number; qr: string } | null>(null);
   const [got, setGot] = useState<number | null>(null); const [copied, setCopied] = useState(false);
@@ -28,6 +29,7 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
   useEffect(() => { authedFetch("/api/wallet/link").then((s) => { setSt(s); if (s.connected) void refresh(); }).catch((e) => setErr(e.message)); return () => { if (poll.current) clearInterval(poll.current); }; }, [refresh]);
 
   async function connect() {
+    if (link.trim().length < 20) { setErr("Paste your wallet connection link first. It starts with nostr+walletconnect://"); return; }
     setBusy(true); setErr("");
     try { const s = await authedFetch("/api/wallet/link", { body: { nwc: link } }); setSt(s); setLink(""); await refresh(); } catch (e: any) { setErr(e.message); }
     setBusy(false);
@@ -49,17 +51,28 @@ export function WalletPanel({ savedAddress, onUseAddress }: { savedAddress: stri
     setBusy(false);
   }
 
-  if (!st) return <section className="card"><p className="muted small" style={{ margin: 0 }}>{err || "Loading your wallet…"}</p></section>;
+  if (!st) return (
+    <section className="card wp-compact"><div><h3 style={{ marginBottom: 2 }}>Your Lightning wallet <span className="pill">optional</span></h3>
+      <p className="muted small" style={{ margin: 0 }}>{err || "Checking…"}</p></div></section>
+  );
+
+  if (!st.connected && !showForm) return (
+    <section className="card wp-compact">
+      <div><h3 style={{ marginBottom: 2 }}>Your Lightning wallet <span className="pill">optional</span></h3>
+        <p className="muted small" style={{ margin: 0 }}>See your live balance and payments, and receive sats, right here.</p></div>
+      <button className="btn sm secondary" onClick={() => setShowForm(true)}>Connect</button>
+    </section>
+  );
 
   if (!st.connected) return (
     <section className="card">
-      <h3>Connect your Lightning wallet</h3>
-      <p className="muted small" style={{ marginTop: 0 }}>See your live balance, recent payments and create invoices to receive sats, right here. Paste a Nostr Wallet Connect link from your wallet.</p>
+      <div className="sec-head"><h3>Connect your Lightning wallet</h3><button className="linkbtn" style={{ margin: 0 }} onClick={() => { setShowForm(false); setErr(""); }}>Cancel</button></div>
+      <p className="muted small" style={{ marginTop: 0 }}>Paste a Nostr Wallet Connect link from your wallet to see your live balance and payments and to create invoices.</p>
       <label>Wallet connection link</label>
       <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="nostr+walletconnect://…" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
       <p className="hint"><b>Create a read-only connection.</b> Allow only "read balance", "read transactions" and "create invoices". Sats-for-Data refuses a link that can send payments, so it can never spend your money.{st.sandbox ? " (Sandbox mode: links that can send are allowed for testing.)" : ""}</p>
       {err && <p className="err">{err}</p>}
-      <button className="btn inline" disabled={busy || link.trim().length < 20} onClick={connect}>{busy ? "Connecting…" : "Connect wallet"}</button>
+      <button className="btn inline" disabled={busy} onClick={connect}>{busy ? "Connecting…" : "Connect wallet"}</button>
     </section>
   );
 
