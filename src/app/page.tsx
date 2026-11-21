@@ -18,7 +18,7 @@ export default function Landing() {
             <Link href="/tasks" className="btn inline">Start earning <Arrow /></Link>
             <Link href="/post" className="btn inline secondary">Post a task</Link>
           </div>
-          <div className="lp-trust rise" style={{ "--d": "360ms" } as React.CSSProperties}><span>Instant bitcoin payouts</span><span>We never hold your funds</span><span>Open source</span></div>
+          <div className="lp-trust rise" style={{ "--d": "360ms" } as React.CSSProperties}><span>Instant bitcoin payouts</span><span>We never hold your funds</span><a href="https://github.com/samuel025/sats_train" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>Open source on GitHub ↗</a></div>
 
           <div className="rise" style={{ "--d": "460ms" } as React.CSSProperties}><HeroDemo /></div>
         </div>
@@ -125,7 +125,7 @@ export default function Landing() {
       </section>
 
       <footer className="lp-footer">
-        <div className="lp-wrap">⚡ Sats-for-Data · Open source (MIT) · Built in Africa for the Dakar Bitcoin Hackathon 2026</div>
+        <div className="lp-wrap">⚡ Sats-for-Data · <a href="https://github.com/samuel025/sats_train" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "underline" }}>GitHub: samuel025/sats_train</a> · Open source (MIT) · Built in Africa for the Dakar Bitcoin Hackathon 2026</div>
       </footer>
     </div>
   );
